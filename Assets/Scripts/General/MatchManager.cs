@@ -162,6 +162,7 @@ public class MatchManager : MonoBehaviour
         // Reset game data and board position
         Side2Move = 0;
         BoardPosition = new ChessBoard(startFen);
+        Data = new MatchData(startFen);
 
         // Reset Match Parameters
         EndState = -1;

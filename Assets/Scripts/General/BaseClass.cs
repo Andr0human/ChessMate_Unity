@@ -22,6 +22,8 @@ public static class TT
     public static void
     Init()
     {
+        if (HashIndex != null) return;
+
         HashIndex = new ulong[860];
 
         for (int i = 0; i < 860; i++)

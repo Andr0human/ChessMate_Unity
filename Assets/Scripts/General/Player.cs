@@ -123,7 +123,8 @@ public class ChessEngine : IPlayer
         EngineEval = 0;
 
         // Play Book Move if possible
-        if (AllowOpeningBook && ob.PositionInOpeningBook(ref position))
+        bool bookAvailable = (ob != null) && (ob.Book != null) && (ob.Book.Count > 0);
+        if (AllowOpeningBook && bookAvailable && ob.PositionInOpeningBook(ref position))
         {
             EngineMove = ob.PlayBookMove(ref position);
             EngineEval = 0;

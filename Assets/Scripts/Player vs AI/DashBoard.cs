@@ -1,15 +1,26 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
 
 public class DashBoard : MonoBehaviour
 {
     [SerializeField] private Timer tmr;
     [SerializeField] private GameObject[] ChessClocksText;
+    [SerializeField] private GameObject BookMissingBanner;
 
     public int TimeOption;
     public int SideOption;
     public float FixedTime, IncTime;
+
+
+    private void
+    Start()
+    {
+        OpeningBook ob = GameObject.FindObjectOfType<OpeningBook>();
+        bool bookLoaded = (ob != null) && (ob.Book != null) && (ob.Book.Count > 0);
+
+        if (BookMissingBanner != null)
+            BookMissingBanner.SetActive(!bookLoaded);
+    }
 
 
     public void
@@ -57,6 +68,9 @@ public class DashBoard : MonoBehaviour
         GameObject.Find("Color Format").SetActive(false);
         GameObject.Find("BackBoard").SetActive(false);
 
+        if (BookMissingBanner != null)
+            BookMissingBanner.SetActive(false);
+
         if (TimeOption == 0) {}
             // tmr.enabled = false;
         else
@@ -72,12 +86,12 @@ public class DashBoard : MonoBehaviour
         string player_black = (SideOption == 1) ? "human" : "bot";
 
         //! TODO code <FixedMoveTime>
-        // StartCoroutine(
-        //     GameObject.FindObjectOfType<MatchManager>().StartNewGame(
-        //         player_white, player_black, new List<int>(),
-        //         false, true
-        //     )
-        // );
+        StartCoroutine(
+            GameObject.FindObjectOfType<MatchManager>().StartNewGame(
+                player_white, player_black, "",
+                false, true
+            )
+        );
     }
 
 

@@ -15,6 +15,13 @@ public class OpeningBook : MonoBehaviour
     public string[] openings;
     private int openingLineNum = 0;
 
+    private void
+    Awake()
+    {
+        TT.Init();
+        GetOpeningBook();
+    }
+
     private int
     UciToEncodeMove(string uci_move, ref ChessBoard pos)
     {
@@ -82,7 +89,15 @@ public class OpeningBook : MonoBehaviour
     GetOpeningBook()
     {
         Book = new Dictionary<ulong, List<int>>();
-        string[] lines = File.ReadAllLines(Application.streamingAssetsPath + "/Utility/Opening Book.txt");
+
+        string book_path = Application.streamingAssetsPath + "/Utility/Opening Book.opening";
+        if (!File.Exists(book_path))
+        {
+            UnityEngine.Debug.LogWarning("No opening book found at " + book_path);
+            return;
+        }
+
+        string[] lines = File.ReadAllLines(book_path);
 
         foreach (string line in lines)
         {
