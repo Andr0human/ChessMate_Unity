@@ -36,6 +36,9 @@
 # Visual Studio cache directory
 .vs/
 
+# VS Code (Unity-generated, personal editor config)
+.vscode/
+
 # Gradle cache directory
 .gradle/
 
@@ -71,3 +74,8 @@ sysinfo.txt
 
 # Crashlytics generated file
 crashlytics-build.properties
+
+# md files
+*.md
+!README.md
+docs/
