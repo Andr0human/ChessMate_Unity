@@ -45,8 +45,8 @@ public class ChessEngine : IPlayer
     ChessEngine(string __engine, string start_fen, int game_no, bool __fixed_move_time=false,
         bool __allow_opening_book=true)
     {
-        ob  = GameObject.FindObjectOfType<OpeningBook>();
-        tmr = GameObject.FindObjectOfType<Timer>();
+        ob  = GameObject.FindAnyObjectByType<OpeningBook>();
+        tmr = GameObject.FindAnyObjectByType<Timer>();
 
         EngineName       = __engine;
         FixedMoveTime    = __fixed_move_time;
@@ -246,8 +246,8 @@ public class HumanPlayer : IPlayer
     public
     HumanPlayer()
     {
-        ui = GameObject.FindObjectOfType<UserInput>();
-        mg = GameObject.FindObjectOfType<MoveGenerator>();
+        ui = GameObject.FindAnyObjectByType<UserInput>();
+        mg = GameObject.FindAnyObjectByType<MoveGenerator>();
     }
 
 

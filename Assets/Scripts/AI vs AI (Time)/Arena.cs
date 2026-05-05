@@ -134,7 +134,7 @@ public class Arena : MonoBehaviour
     public void
     InitArena()
     {
-        GameObject.FindObjectOfType<OpeningBook>().GetOpeningLines(OpeningsFilePath);
+        GameObject.FindAnyObjectByType<OpeningBook>().GetOpeningLines(OpeningsFilePath);
 
         string dir_arena = Application.streamingAssetsPath + "/arena/";
         if (!Directory.Exists(dir_arena))
@@ -164,9 +164,9 @@ public class Arena : MonoBehaviour
             CurrentGameNumText.text = "Game Number : " + CurrentGameNum.ToString();
 
             if (side2start == 0)
-                opening_moves = FindObjectOfType<OpeningBook>().NextOpening();
+                opening_moves = FindAnyObjectByType<OpeningBook>().NextOpening();
 
-            GameObject.FindObjectOfType<Timer>().SetTime(FixedTimePerGame, IncrementPerGame);
+            GameObject.FindAnyObjectByType<Timer>().SetTime(FixedTimePerGame, IncrementPerGame);
 
             // Play Current Match
             yield return StartCoroutine( mm.StartNewGame(

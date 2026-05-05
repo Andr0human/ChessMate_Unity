@@ -15,7 +15,7 @@ public class DashBoard : MonoBehaviour
     private void
     Start()
     {
-        OpeningBook ob = GameObject.FindObjectOfType<OpeningBook>();
+        OpeningBook ob = GameObject.FindAnyObjectByType<OpeningBook>();
         bool bookLoaded = (ob != null) && (ob.Book != null) && (ob.Book.Count > 0);
 
         if (BookMissingBanner != null)
@@ -87,7 +87,7 @@ public class DashBoard : MonoBehaviour
 
         //! TODO code <FixedMoveTime>
         StartCoroutine(
-            GameObject.FindObjectOfType<MatchManager>().StartNewGame(
+            GameObject.FindAnyObjectByType<MatchManager>().StartNewGame(
                 player_white, player_black, "",
                 false, true
             )
