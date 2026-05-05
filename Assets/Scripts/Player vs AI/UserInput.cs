@@ -1,5 +1,6 @@
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections;
 
 
@@ -38,12 +39,13 @@ class UserInput : MonoBehaviour
         while (true)
         {
             yield return null;
-            if (Input.GetMouseButtonDown(0))
+            Mouse mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame)
             {
                 // Left mouse button clicked
 
                 // Get the current mouse position
-                Vector3 mouse_pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                Vector3 mouse_pos = Camera.main.ScreenToWorldPoint(mouse.position.ReadValue());
 
                 __x = (int)(mouse_pos.x + 0.5f);
                 __y = (int)(mouse_pos.y + 0.5f);
