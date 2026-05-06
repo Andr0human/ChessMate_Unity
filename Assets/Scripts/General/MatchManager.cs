@@ -13,6 +13,12 @@ public class MatchManager : MonoBehaviour
 
     [SerializeField] private GameObject EndScreen;
 
+    // Optional per-side eval display (used by the Arena scene; left unassigned
+    // in Player-vs-AI). Index 0 = first player (white at game start), 1 = second.
+    [SerializeField] private TMPro.TextMeshProUGUI[] PlayerEvalTexts = new TMPro.TextMeshProUGUI[2];
+
+    private string[] PlayerNames = new string[2];
+
     [HideInInspector] public ChessBoard BoardPosition;
     [HideInInspector] public  MatchData Data;
     [HideInInspector] public  IPlayer[] Players;
@@ -170,20 +176,22 @@ public class MatchManager : MonoBehaviour
 
         EndScreen.SetActive(false);
 
+        PlayerNames[0] = playerWhite;
+        PlayerNames[1] = playerBlack;
+        ResetEvalDisplays();
+
         // Play the opening moves, if any
         if (opening.Length > 0)
             yield return StartCoroutine(PlayOpening(opening));
 
-        string fen = BoardPosition.Fen();
-
         // Create players
         Players[0] = (playerWhite == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerWhite, fen, gameNo, fixedTimePerMove, allowOpeningBook);
+                      : new ChessEngine(playerWhite, fixedTimePerMove, allowOpeningBook);
 
         Players[1] = (playerBlack == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerBlack, fen, gameNo, fixedTimePerMove, allowOpeningBook);
+                      : new ChessEngine(playerBlack, fixedTimePerMove, allowOpeningBook);
 
         yield return new WaitForSeconds(1);
         gameNo++;
@@ -238,6 +246,8 @@ public class MatchManager : MonoBehaviour
         Data.Add(move, eval, tmr.ChessClocks[Side2Move ^ 1],
             BoardPosition.GenerateHashKey() );
 
+        UpdateEvalDisplay(Side2Move, eval);
+
         // Board Update
         bh.BoardReset(false);
         bh.MarkPlayedMove(move);
@@ -290,6 +300,31 @@ public class MatchManager : MonoBehaviour
 
         EndScreen.GetComponent<TMPro.TextMeshProUGUI>().text = res;
         EndScreen.SetActive(true);
+    }
+
+
+    private void
+    ResetEvalDisplays()
+    {
+        if (PlayerEvalTexts == null) return;
+        for (int i = 0; i < PlayerEvalTexts.Length; i++)
+        {
+            if (PlayerEvalTexts[i] == null) continue;
+            string name = (i < PlayerNames.Length) ? PlayerNames[i] : "";
+            PlayerEvalTexts[i].text = name + ": —";
+        }
+    }
+
+
+    private void
+    UpdateEvalDisplay(int side, float eval)
+    {
+        if (PlayerEvalTexts == null || side >= PlayerEvalTexts.Length) return;
+        var tmp = PlayerEvalTexts[side];
+        if (tmp == null) return;
+
+        string name = (side < PlayerNames.Length) ? PlayerNames[side] : "";
+        tmp.text = string.Format("{0}: {1:+0.00;-0.00; 0.00}", name, eval);
     }
 
 

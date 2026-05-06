@@ -1,6 +1,7 @@
 using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using UnityEngine;
 
 
@@ -23,26 +24,35 @@ public interface IPlayer
 public class ChessEngine : IPlayer
 {
     private   OpeningBook ob;
-    private MoveGenerator mg;
     private static Timer tmr;
 
-    private Process    EngineProcess;
-    private  string       EngineName;
-    private  string       EnginePath;
-    private  string  EngineInputPath;
-    private  string EngineOutputPath;
+    private Process EngineProcess;
+    private string  EngineName;
+    private string  EnginePath;
 
     public bool    FixedMoveTime;
     public bool AllowOpeningBook;
 
+    private readonly ConcurrentQueue<string> EngineOutput = new ConcurrentQueue<string>();
+
+    // Stashed by Play() so ReadOutput can decode the engine's bestmove
+    // back into a packed-int move before EngineMove is exposed.
+    private ChessBoard CurrentPosition;
+
+    // Anchor + replayed moves let the engine see repetition history.
+    // Anchor is set on the engine's first Play() call (post-opening FEN
+    // when applicable). Each subsequent turn appends the opponent's reply
+    // and our own bestmove.
+    private string AnchorFen;
+    private readonly List<string> UciHistory = new List<string>();
+    private string LastBestmoveUci;
+
     private   int EngineMove;
     private float EngineEval;
 
-    private int QueryCount;
-
 
     public
-    ChessEngine(string __engine, string start_fen, int game_no, bool __fixed_move_time=false,
+    ChessEngine(string __engine, bool __fixed_move_time=false,
         bool __allow_opening_book=true)
     {
         ob  = GameObject.FindAnyObjectByType<OpeningBook>();
@@ -52,40 +62,44 @@ public class ChessEngine : IPlayer
         FixedMoveTime    = __fixed_move_time;
         AllowOpeningBook = __allow_opening_book;
 
-        EnginePath       = Application.streamingAssetsPath + "/" + __engine + ".exe";
-        EngineInputPath  = Application.streamingAssetsPath + "/" + __engine +  ".in";
-        EngineOutputPath = Application.streamingAssetsPath + "/" + __engine + ".out";
-
-        QueryCount = 1;
-
-        string EngineLogFolder = Application.streamingAssetsPath + "/arena/logs_" + EngineName;
-        string EngineLogPath =
-            EngineLogFolder + "/game_" + game_no.ToString() + ".log";
-
-        // Create input and output files for commands
-        if (!File.Exists( EngineInputPath)) File.Create( EngineInputPath).Dispose();
-        if (!File.Exists(EngineOutputPath)) File.Create(EngineOutputPath).Dispose();
-        if (!File.Exists(EngineOutputPath)) File.Create(EngineOutputPath).Dispose();
-
-        if (!Directory.Exists(EngineLogFolder))
-            Directory.CreateDirectory(EngineLogFolder);
-
-        File.WriteAllText(EngineInputPath , "");
-        File.WriteAllText(EngineOutputPath, "");
+        EnginePath = Application.streamingAssetsPath + "/" + __engine + ".exe";
 
         EngineProcess = new Process();
-        ProcessStartInfo startInfo = new ProcessStartInfo(EnginePath)
+        EngineProcess.StartInfo = new ProcessStartInfo(EnginePath)
         {
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden,
-            Arguments = "play"
-                + " log "    + EngineLogPath
-                + " input "  + EngineInputPath
-                + " output " + EngineOutputPath
-                + " position \"" + start_fen + "\"",
             WorkingDirectory = Application.streamingAssetsPath,
         };
 
-        EngineProcess = Process.Start(startInfo);
+        EngineProcess.OutputDataReceived += (sender, args) =>
+        {
+            if (args.Data != null) EngineOutput.Enqueue(args.Data);
+        };
+
+        EngineProcess.Start();
+        EngineProcess.BeginOutputReadLine();
+        EngineProcess.StandardInput.NewLine = "\n";
+
+        // UCI handshake. We don't strictly require uciok/readyok before
+        // playing — the engine processes commands in order — but draining
+        // the early lines keeps the queue clean.
+        SendLine("uci");
+        SendLine("isready");
+        SendLine("ucinewgame");
+    }
+
+
+    private void
+    SendLine(string line)
+    {
+        if (EngineProcess == null || EngineProcess.HasExited) return;
+        EngineProcess.StandardInput.WriteLine(line);
+        EngineProcess.StandardInput.Flush();
     }
 
 
@@ -110,7 +124,7 @@ public class ChessEngine : IPlayer
             (((max_weight - current_weight) / 400f) * 1.3f);
 
         float search_time = ((time_left + increment) / moves_to_go) + (0.6f * increment);
-        
+
         search_time = Mathf.Min(search_time, 0.62f * time_left);
         return search_time;
     }
@@ -121,71 +135,139 @@ public class ChessEngine : IPlayer
     {
         EngineMove = 0;
         EngineEval = 0;
+        LastBestmoveUci = null;
+        CurrentPosition = position;
+
+        // First call locks in the anchor FEN. On subsequent calls, the
+        // opponent's reply is appended so the engine sees full history
+        // since the engine first saw the game.
+        if (AnchorFen == null)
+        {
+            AnchorFen = position.Fen();
+        }
+        else if (last_move != 0)
+        {
+            UciHistory.Add(MoveCodec.EncodeToUci(last_move));
+        }
+
+        // string currentFen = position.Fen();
+        // UnityEngine.Debug.Log(string.Format(
+        //     "[{0}] turn — fen={1} last_move={2}",
+        //     EngineName, currentFen,
+        //     (last_move != 0) ? MoveCodec.EncodeToUci(last_move) : "-"));
 
         // Play Book Move if possible
         bool bookAvailable = (ob != null) && (ob.Book != null) && (ob.Book.Count > 0);
         if (AllowOpeningBook && bookAvailable && ob.PositionInOpeningBook(ref position))
         {
-            EngineMove = ob.PlayBookMove(ref position);
+            int bookMove = ob.PlayBookMove(ref position);
             EngineEval = 0;
+            // UnityEngine.Debug.Log("[" + EngineName + "] book move: " + MoveCodec.EncodeToUci(bookMove));
+            EngineMove = bookMove;
+            UciHistory.Add(MoveCodec.EncodeToUci(bookMove));
             yield break;
         }
 
         float search_time = FixedMoveTime ? 0.5f : DecideTimeForSearch(ref position);
+        int movetime_ms = Mathf.Max(1, Mathf.RoundToInt(search_time * 1000f));
 
-        WriteInput(search_time, tmr.ChessClocks[position.color ^ 1], last_move);
+        SendPosition(AnchorFen, UciHistory, movetime_ms);
+        SendLine("go movetime " + movetime_ms);
+
         yield return new WaitUntil( ReadOutput );
-        QueryCount++;
+
+        // Track our own move so the engine sees it as part of history next turn.
+        if (LastBestmoveUci != null && EngineMove > 0)
+            UciHistory.Add(LastBestmoveUci);
     }
 
 
     private void
-    WriteInput(float alloted_time, float time_left, int last_move)
+    SendPosition(string fen, List<string> moves, int movetime_ms)
     {
-        using (FileStream inputFileStream = new FileStream(EngineInputPath, FileMode.Create, FileAccess.Write, FileShare.Read))
-        using (StreamWriter inputFileWriter = new StreamWriter(inputFileStream))
-        {
-            int INPUT_SIZE = 50;
-            string commandline =
-                QueryCount.ToString() + " time " + alloted_time.ToString("0.###");
+        string cmd = "position fen " + fen;
+        if (moves.Count > 0)
+            cmd += " moves " + string.Join(" ", moves);
 
-            if (last_move != 0)
-                commandline += " moves " + last_move.ToString();
+        // UnityEngine.Debug.Log(string.Format(
+        //     "[{0}] -> {1}\n[{0}] -> go movetime {2}",
+        //     EngineName, cmd, movetime_ms));
 
-            commandline += " go";
-            commandline += new string(' ', INPUT_SIZE - commandline.Length);
-
-            inputFileWriter.WriteLine(commandline);
-        }
+        SendLine(cmd);
     }
 
 
     public bool
     ReadOutput()
     {
-        int OUTPUT_SIZE = 30;
         if ((EngineProcess == null) || (EngineMove == -1))
             return true;
 
-        using (FileStream outputFileStream = new FileStream(EngineOutputPath, FileMode.Open, FileAccess.Read, FileShare.Write))
-        using (StreamReader outputFileReader = new StreamReader(outputFileStream))
+        while (EngineOutput.TryDequeue(out string line))
         {
-            string line = outputFileReader.ReadLine();
-            if (line == null) return false;
-            UnityEngine.Debug.Log(line);
-            if (line.Length != OUTPUT_SIZE) return false;
+            // UnityEngine.Debug.Log("[" + EngineName + "] <- " + line);
 
-            string[] values = line.Split();
+            if (line.StartsWith("info "))
+            {
+                ParseInfoScore(line);
+                continue;
+            }
 
-            int returnQuery = int.Parse(values[2]);
-            if (returnQuery != QueryCount)
-                return false;
+            if (!line.StartsWith("bestmove ")) continue;
 
-            EngineMove = int.Parse(values[0]);
-            EngineEval = float.Parse(values[1]);
+            string[] parts = line.Split(' ');
+            if (parts.Length < 2) continue;
 
+            string uci = parts[1];
+            // EngineEval already populated from latest "info score" line.
+            LastBestmoveUci = uci;
+
+            if (uci == "0000")
+            {
+                EngineMove = 0;
+            }
+            else
+            {
+                int packed = MoveCodec.DecodeFromUci(uci, ref CurrentPosition);
+                EngineMove = packed;
+
+                // UnityEngine.Debug.Log(string.Format(
+                //     "[{0}] bestmove uci={1} packed=0x{2:X} from_fen={3}",
+                //     EngineName, uci, packed, CurrentPosition.Fen()));
+            }
             return true;
         }
+
+        return false;
+    }
+
+
+    // Parses "info ... score cp N ..." or "info ... score mate N ..." and
+    // stores the result in EngineEval as a white-relative pawn-unit float.
+    // Elsa emits cp from the side-to-move POV, so we flip when STM is black
+    // to match the white-relative convention used by MatchData / PredictionCall.
+    private void
+    ParseInfoScore(string line)
+    {
+        int idx = line.IndexOf(" score ");
+        if (idx < 0) return;
+
+        string[] tk = line.Substring(idx + 1).Split(' ');
+        if (tk.Length < 3) return;
+
+        if (!int.TryParse(tk[2], out int v)) return;
+
+        float stmEval;
+        if (tk[1] == "mate")
+            stmEval = (v >= 0 ? 100f : -100f);
+        else if (tk[1] == "cp")
+            stmEval = v / 100f;
+        else
+            return;
+
+        // ChessBoard.color: 1 = white to move, 0 = black to move.
+        int sign = (CurrentPosition.color == 1) ? 1 : -1;
+        EngineEval = sign * stmEval;
     }
 
 
@@ -194,25 +276,22 @@ public class ChessEngine : IPlayer
     {
         if (EngineProcess != null && !EngineProcess.HasExited)
         {
-            EngineProcess.CloseMainWindow();
-            EngineProcess.WaitForExit();
+            try
+            {
+                SendLine("quit");
+                if (!EngineProcess.WaitForExit(2000))
+                    EngineProcess.Kill();
+            }
+            catch
+            {
+                try { EngineProcess.Kill(); } catch { /* already gone */ }
+            }
 
             EngineProcess.Close();
             EngineProcess.Dispose();
         }
 
-        // Set to null after stopping and disposing to prevent further access.
-        EngineProcess = null; 
-
-        // Delete both input and output files along with their meta files
-        string  input_meta_file =  EngineInputPath + ".meta";
-        string output_meta_file = EngineOutputPath + ".meta";
-
-        if (File.Exists(EngineInputPath)) File.Delete(EngineInputPath);
-        if (File.Exists(input_meta_file)) File.Delete(input_meta_file);
-
-        if (File.Exists(EngineOutputPath)) File.Delete(EngineOutputPath);
-        if (File.Exists(output_meta_file)) File.Delete(output_meta_file);
+        EngineProcess = null;
     }
 
 
@@ -309,4 +388,3 @@ public class HumanPlayer : IPlayer
     ReadOutput()
     { return true; }
 }
-
