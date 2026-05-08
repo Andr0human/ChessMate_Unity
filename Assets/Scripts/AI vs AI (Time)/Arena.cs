@@ -140,7 +140,8 @@ public class Arena : MonoBehaviour
         if (!Directory.Exists(dir_arena))
             Directory.CreateDirectory(dir_arena);
 
-        ScoreSheet = new ArenaScoreSheet(ArenaEngines[0], ArenaEngines[1]);
+        ScoreSheet = new ArenaScoreSheet(ArenaEngines[0], ArenaEngines[1],
+            FixedTimePerGame, IncrementPerGame, fixedTimePerMove);
         sw = new Stopwatch();
 
         CurrentGameNumText.gameObject.SetActive(true);

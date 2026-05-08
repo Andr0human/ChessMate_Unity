@@ -1,130 +1,129 @@
-import numpy as np
+import csv
 import matplotlib.pyplot as plt
 
 
-def display_results(outcomes):
-    # Data
-    categories = ['Results']
-    wins, draws, losses = 0, 0, 0
-
-    for i, outcome in enumerate(outcomes):
-        if outcome == 0:
-            draws += 1
-        elif outcome == 1:
-            if i % 2 == 0:
-                wins += 1
-            else:
-                losses += 1
-        else:
-            if i % 2 == 1:
-                wins += 1
-            else:
-                losses += 1
-
+def display_results(wins, draws, losses, engine1, engine2):
     total_matches = wins + draws + losses
+    if total_matches == 0:
+        return
 
-    # Calculate percentages
-    win_percentage = round((wins / total_matches) * 100, 2)
-    draw_percentage = round((draws / total_matches) * 100, 2)
-    loss_percentage = round((losses / total_matches) * 100, 2)
+    win_pct  = round((wins   / total_matches) * 100, 2)
+    draw_pct = round((draws  / total_matches) * 100, 2)
+    loss_pct = round((losses / total_matches) * 100, 2)
 
-    # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(10, 1))  # Adjust the height as needed
+    fig, ax = plt.subplots(figsize=(10, 1.6))
 
-    # Plot horizontal stacked bar chart
-    bars_wins = ax.barh(categories, wins, color='green', label='Wins')
-    bars_draws = ax.barh(categories, draws, left=wins, color='grey', label='Draws')
-    bars_losses = ax.barh(categories, losses, left=wins + draws, color='red', label='Losses')
+    categories = ['']
 
-    # Display the actual results on top of each section
-    for bar, value in zip(bars_wins, [win_percentage]):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() + bar.get_height() / 2, f'{value}%', ha='center', va='center', color='black', fontweight='bold')
+    bars_wins   = ax.barh(categories, wins,   color='green', label=f'Wins ({wins})')
+    bars_draws  = ax.barh(categories, draws,  left=wins,         color='grey', label=f'Draws ({draws})')
+    bars_losses = ax.barh(categories, losses, left=wins + draws, color='red',  label=f'Losses ({losses})')
 
-    for bar, value in zip(bars_draws, [draw_percentage]):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() + bar.get_height() / 2, f'{value}%', ha='center', va='center', color='black', fontweight='bold')
+    for bar, value in zip(bars_wins, [win_pct]):
+        if value > 0:
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() + bar.get_height() / 2,
+                    f'{value}%', ha='center', va='center', color='white', fontweight='bold')
+    for bar, value in zip(bars_draws, [draw_pct]):
+        if value > 0:
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() + bar.get_height() / 2,
+                    f'{value}%', ha='center', va='center', color='white', fontweight='bold')
+    for bar, value in zip(bars_losses, [loss_pct]):
+        if value > 0:
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() + bar.get_height() / 2,
+                    f'{value}%', ha='center', va='center', color='white', fontweight='bold')
 
-    for bar, value in zip(bars_losses, [loss_percentage]):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() + bar.get_height() / 2, f'{value}%', ha='center', va='center', color='black', fontweight='bold')
+    score = wins + 0.5 * draws
+    ax.set_title(
+        f'{engine1} vs {engine2}   |   '
+        f'Score: {score:g} / {total_matches}   ({wins}W / {draws}D / {losses}L)',
+        fontsize=11, fontweight='bold'
+    )
 
-    # Display percentages inside the line
-    # line_text = f'Wins: {win_percentage:.2f}% | Draws: {draw_percentage:.2f}% | Losses: {loss_percentage:.2f}%'
-    line_text = f'Wins: {wins}    Draws: {draws}    Losses: {losses}'
-    ax.text(0, 0.6, line_text, fontsize=12, va='center', fontweight='bold')
-
-    # Customize the appearance
     ax.set_xlim(0, total_matches)
-    ax.set_xticks([])  # Hide x-axis ticks
-    ax.set_yticks([])  # Hide y-axis ticks
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.legend(loc='lower right', bbox_to_anchor=(1.0, -0.55), ncol=3, frameon=False)
 
-    # Adjust y-limits for title
-    plt.subplots_adjust(top=0.7)
-
-    # Display the chart
-    # plt.show()
-    plt.savefig("results.png")
+    plt.tight_layout()
+    plt.savefig("results.png", bbox_inches='tight')
+    plt.close()
 
 
-def display_score_graph(outcomes):
-    # Initialize cumulative scores
-    player1_score = 0
-    player2_score = 0
-    player1_scores = []
-    player2_scores = []
+def display_score_graph(rows, engine1, engine2):
+    e1_score = 0
+    e2_score = 0
+    e1_scores = []
+    e2_scores = []
 
-    # Calculate scores based on outcomes
-    for i, outcome in enumerate(outcomes):
-        if outcome == 0:
-            player1_score += 1
-            player2_score += 1
-        elif outcome == 1:
-            if i % 2 == 0:
-                player1_score += 2
-            else:
-                player2_score += 2
-        else:
-            if i % 2 == 1:
-                player1_score += 2
-            else:
-                player2_score += 2
-        player1_scores.append(player1_score)
-        player2_scores.append(player2_score)
+    for row in rows:
+        result = row['Result']
+        white  = row['WhitePlayer']
 
-    # Create a figure and axis
+        if result == '1/2-1/2':
+            e1_score += 0.5
+            e2_score += 0.5
+        elif result == '1-0':
+            if white == engine1: e1_score += 1
+            else:                e2_score += 1
+        else:  # 0-1
+            if white == engine1: e2_score += 1
+            else:                e1_score += 1
+
+        e1_scores.append(e1_score)
+        e2_scores.append(e2_score)
+
+    n = len(rows)
+    games = list(range(1, n + 1))
+    final_e1 = e1_scores[-1]
+    final_e2 = e2_scores[-1]
+
+    use_markers = n <= 50
+    marker = 'o' if use_markers else None
+
     plt.figure(figsize=(10, 6))
-    plt.plot(player1_scores, label='Player 1')
-    plt.plot(player2_scores, label='Player 2')
-
-    # Adding labels and title
-    plt.xlabel('Games')
-    plt.ylabel('Score')
-    plt.title('Player Scores')
+    plt.plot(games, e1_scores, marker=marker, label=f'{engine1} ({final_e1:g})')
+    plt.plot(games, e2_scores, marker=marker, label=f'{engine2} ({final_e2:g})')
+    plt.xlabel('Game')
+    plt.ylabel('Score (win=1, draw=0.5)')
+    plt.title(f'Cumulative Score: {engine1} vs {engine2}')
     plt.legend()
-
-    # Display the plot
     plt.grid(True)
-    # plt.show()
-    plt.savefig("scores.png")
+    plt.xlim(1, n)
+    if n <= 30:
+        plt.xticks(games)
+    plt.savefig("scores.png", bbox_inches='tight')
+    plt.close()
 
 
-def get_results(file_path):
-
-    with open(file_path, 'r') as file:
-        content = file.readlines()
-    
-    players = content[2]
-
-    for line in content:
-        if line.startswith("Results =>"):
-            outcomes = list(map(int, line[len("Results =>"):].split()))
-    
-    return players, outcomes
+def read_csv(file_path):
+    with open(file_path, 'r') as f:
+        reader = csv.DictReader(f, skipinitialspace=True)
+        rows = [row for row in reader]
+    return rows
 
 
-players, outcomes = get_results('results.txt')
+def tally(rows, engine1):
+    wins = draws = losses = 0
+    for row in rows:
+        result = row['Result']
+        white  = row['WhitePlayer']
 
-display_results(outcomes=outcomes)
+        if result == '1/2-1/2':
+            draws += 1
+        elif result == '1-0':
+            if white == engine1: wins += 1
+            else:                losses += 1
+        else:  # 0-1
+            if white == engine1: losses += 1
+            else:                wins += 1
+    return wins, draws, losses
 
-display_score_graph(outcomes=outcomes)
 
-# plt.show()
+rows = read_csv('results_log.csv')
+if rows:
+    engine1 = rows[0]['WhitePlayer']
+    engine2 = rows[0]['BlackPlayer']
+    wins, draws, losses = tally(rows, engine1)
 
+    display_results(wins, draws, losses, engine1, engine2)
+    display_score_graph(rows, engine1, engine2)

@@ -268,6 +268,10 @@ class ArenaScoreSheet
     private string engine1;
     private string engine2;
 
+    private float time_per_game;
+    private float time_increment;
+    private bool  fixed_time_per_move;
+
     private int prediction_attempt;
     private int prediction_success;
 
@@ -277,10 +281,15 @@ class ArenaScoreSheet
     List<int> results;
 
 
-    public ArenaScoreSheet(string __engine1, string __engine2)
+    public ArenaScoreSheet(string __engine1, string __engine2,
+        float __time_per_game, float __time_increment, bool __fixed_time_per_move)
     {
         engine1 = __engine1;
         engine2 = __engine2;
+
+        time_per_game = __time_per_game;
+        time_increment = __time_increment;
+        fixed_time_per_move = __fixed_time_per_move;
 
         prediction_attempt = prediction_success = 0;
         engine1_loss_on_time = engine2_loss_on_time = 0;
@@ -347,22 +356,31 @@ class ArenaScoreSheet
         int e1_draws_t = e1_draws_w + e1_draws_b;
 
         string file_path = Application.streamingAssetsPath + "/arena/results.txt";
-        string result_string = "";
 
-        foreach (var res in results)
-            result_string += res.ToString() + " ";
+        string time_control = fixed_time_per_move
+            ? $"Fixed {time_per_game:0.##}s per move"
+            : $"{time_per_game:0.##}s + {time_increment:0.##}s increment";
+
+        int name_width = System.Math.Max(engine1.Length, engine2.Length);
+
+        string sep = new string('=', 50);
 
         File.WriteAllText(file_path,
-            "####     Arena RESULTS     #####\n"
-            + "Games played : " + (results.Count).ToString() + "\n"
-            + engine1 + " vs " + engine2 + "\n"
-            + "White => | Wins : " + e1_wins_w + " | Draws : " + e1_draws_w + " | Loss : " + e2_wins_b + " |\n"
-            + "Black => | Wins : " + e1_wins_b + " | Draws : " + e1_draws_b + " | Loss : " + e2_wins_w + " |\n"
-            + "Total => | Wins : " + e1_wins_t + " | Draws : " + e1_draws_t + " | Loss : " + e2_wins_t + " |\n\n"
-            + "Prediction Accuracy => " + prediction_success.ToString() + "/" +  prediction_attempt.ToString() + "\n\n"
-            + "Results => " + result_string + "\n\n"
-            + engine1 + " losses on time : " + engine1_loss_on_time.ToString() + "\n"
-            + engine2 + " losses on time : " + engine2_loss_on_time.ToString() + "\n"
+            sep + "\n"
+            + "                ARENA RESULTS\n"
+            + sep + "\n"
+            + engine1 + "  vs  " + engine2 + "\n\n"
+            + "Time Control : " + time_control + "\n"
+            + "Games Played : " + results.Count.ToString() + "\n\n"
+            + "             Wins   Draws   Losses\n"
+            + string.Format("   White : {0,4}    {1,4}    {2,4}\n",  e1_wins_w, e1_draws_w, e2_wins_b)
+            + string.Format("   Black : {0,4}    {1,4}    {2,4}\n",  e1_wins_b, e1_draws_b, e2_wins_w)
+            + string.Format("   Total : {0,4}    {1,4}    {2,4}\n\n", e1_wins_t, e1_draws_t, e2_wins_t)
+            + "Prediction Accuracy : " + prediction_success.ToString() + "/" + prediction_attempt.ToString() + "\n\n"
+            + "Losses on Time\n"
+            + "   " + engine1.PadRight(name_width) + " : " + engine1_loss_on_time.ToString() + "\n"
+            + "   " + engine2.PadRight(name_width) + " : " + engine2_loss_on_time.ToString() + "\n"
+            + sep + "\n"
         );
     }
 
