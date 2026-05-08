@@ -161,9 +161,18 @@ public class MatchManager : MonoBehaviour
     #endregion
 
 
+    private static string
+    BuildSearchLogPath(string dir, string engineName, int gameNumber)
+    {
+        if (string.IsNullOrEmpty(dir) || engineName == "human") return null;
+        return dir + "/logs_" + engineName + "~/game_" + gameNumber + ".log";
+    }
+
+
     public IEnumerator
     StartNewGame(string playerWhite, string playerBlack, string opening,
-                 bool fixedTimePerMove, bool allowOpeningBook)
+                 bool fixedTimePerMove, bool allowOpeningBook,
+                 string searchLogDir = null, int searchLogGameNumber = 0)
     {
         // Reset game data and board position
         Side2Move = 0;
@@ -185,13 +194,16 @@ public class MatchManager : MonoBehaviour
             yield return StartCoroutine(PlayOpening(opening));
 
         // Create players
+        string whiteLog = BuildSearchLogPath(searchLogDir, playerWhite, searchLogGameNumber);
+        string blackLog = BuildSearchLogPath(searchLogDir, playerBlack, searchLogGameNumber);
+
         Players[0] = (playerWhite == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerWhite, fixedTimePerMove, allowOpeningBook);
+                      : new ChessEngine(playerWhite, fixedTimePerMove, allowOpeningBook, whiteLog);
 
         Players[1] = (playerBlack == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerBlack, fixedTimePerMove, allowOpeningBook);
+                      : new ChessEngine(playerBlack, fixedTimePerMove, allowOpeningBook, blackLog);
 
         yield return new WaitForSeconds(1);
         gameNo++;

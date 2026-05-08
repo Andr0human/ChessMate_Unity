@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using UnityEngine;
 
 
@@ -50,10 +51,16 @@ public class ChessEngine : IPlayer
     private   int EngineMove;
     private float EngineEval;
 
+    // Optional per-game search-trace log. When set, every line the engine
+    // emits on stdout (commands echoed, info lines, bestmove) is mirrored
+    // here so Arena games are debuggable after the fact.
+    private StreamWriter SearchLog;
+    private readonly object SearchLogLock = new object();
+
 
     public
     ChessEngine(string __engine, bool __fixed_move_time=false,
-        bool __allow_opening_book=true)
+        bool __allow_opening_book=true, string __search_log_path=null)
     {
         ob  = GameObject.FindAnyObjectByType<OpeningBook>();
         tmr = GameObject.FindAnyObjectByType<Timer>();
@@ -76,9 +83,24 @@ public class ChessEngine : IPlayer
             WorkingDirectory = Application.streamingAssetsPath,
         };
 
+        if (!string.IsNullOrEmpty(__search_log_path))
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(__search_log_path));
+                SearchLog = new StreamWriter(__search_log_path) { AutoFlush = true };
+            }
+            catch
+            {
+                SearchLog = null;
+            }
+        }
+
         EngineProcess.OutputDataReceived += (sender, args) =>
         {
-            if (args.Data != null) EngineOutput.Enqueue(args.Data);
+            if (args.Data == null) return;
+            EngineOutput.Enqueue(args.Data);
+            WriteLog("< " + args.Data);
         };
 
         EngineProcess.Start();
@@ -95,11 +117,24 @@ public class ChessEngine : IPlayer
 
 
     private void
+    WriteLog(string line)
+    {
+        if (SearchLog == null) return;
+        lock (SearchLogLock)
+        {
+            try { SearchLog.WriteLine(line); }
+            catch { /* log is best-effort; never block the game */ }
+        }
+    }
+
+
+    private void
     SendLine(string line)
     {
         if (EngineProcess == null || EngineProcess.HasExited) return;
         EngineProcess.StandardInput.WriteLine(line);
         EngineProcess.StandardInput.Flush();
+        WriteLog("> " + line);
     }
 
 
@@ -292,6 +327,15 @@ public class ChessEngine : IPlayer
         }
 
         EngineProcess = null;
+
+        if (SearchLog != null)
+        {
+            lock (SearchLogLock)
+            {
+                try { SearchLog.Dispose(); } catch { /* already gone */ }
+                SearchLog = null;
+            }
+        }
     }
 
 

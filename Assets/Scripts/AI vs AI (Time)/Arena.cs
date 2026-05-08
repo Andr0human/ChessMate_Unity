@@ -171,7 +171,8 @@ public class Arena : MonoBehaviour
             // Play Current Match
             yield return StartCoroutine( mm.StartNewGame(
                 ArenaEngines[side2start], ArenaEngines[side2start ^ 1], opening_moves,
-                fixedTimePerMove, false
+                fixedTimePerMove, false,
+                Application.streamingAssetsPath + "/arena", CurrentGameNum
             ));
 
             UpdateArenaElements(side2start, mm.EndState, mm.EndPrediction);
