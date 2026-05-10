@@ -263,10 +263,23 @@ public class MatchData
 }
 
 
-class ArenaScoreSheet
+public class ArenaScoreSheet
 {
     private string engine1;
     private string engine2;
+
+    public string Engine1Name => engine1;
+    public string Engine2Name => engine2;
+    public int    GamesPlayed => results.Count;
+    public int    Engine1Wins { get { int n = 0; foreach (var r in TallyByPair( 1)) n += r; return n; } }
+    public int    Engine2Wins { get { int n = 0; foreach (var r in TallyByPair(-1)) n += r; return n; } }
+    public int    Draws       { get { int n = 0; foreach (var r in results) if (r == 0) n++; return n; } }
+
+    private int[] TallyByPair(int win_value)
+    {
+        var (a, b) = CalculateWins(win_value);
+        return new int[] { a, b };
+    }
 
     private float time_per_game;
     private float time_increment;

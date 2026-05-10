@@ -27,6 +27,11 @@ public class MatchManager : MonoBehaviour
     [HideInInspector] public int      EndState;
     [HideInInspector] public int EndPrediction;
 
+    // Fired after each played move is applied to the board + Data.
+    // Arena subscribes to push the live move list to its HUD; single-player
+    // leaves it null.
+    public System.Action OnMoveMade;
+
     private float AdjournWinMargin = 5.0f;
 
     private string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -260,6 +265,8 @@ public class MatchManager : MonoBehaviour
 
         UpdateEvalDisplay(Side2Move, eval);
 
+        OnMoveMade?.Invoke();
+
         // Board Update
         bh.BoardReset(false);
         bh.MarkPlayedMove(move);
@@ -322,8 +329,7 @@ public class MatchManager : MonoBehaviour
         for (int i = 0; i < PlayerEvalTexts.Length; i++)
         {
             if (PlayerEvalTexts[i] == null) continue;
-            string name = (i < PlayerNames.Length) ? PlayerNames[i] : "";
-            PlayerEvalTexts[i].text = name + ": —";
+            PlayerEvalTexts[i].text = "—";
         }
     }
 
@@ -335,8 +341,7 @@ public class MatchManager : MonoBehaviour
         var tmp = PlayerEvalTexts[side];
         if (tmp == null) return;
 
-        string name = (side < PlayerNames.Length) ? PlayerNames[side] : "";
-        tmp.text = string.Format("{0}: {1:+0.00;-0.00; 0.00}", name, eval);
+        tmp.text = string.Format("{0:+0.00;-0.00; 0.00}", eval);
     }
 
 

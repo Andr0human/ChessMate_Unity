@@ -8,7 +8,6 @@ using UnityEngine.UI;
 public class ArenaDashboard : MonoBehaviour
 {
     [SerializeField] private Arena  ar;
-    [SerializeField] private Timer tmr;
 
     public TextMeshProUGUI GameAmountField;
     public TextMeshProUGUI TimeFormatField;
@@ -18,8 +17,6 @@ public class ArenaDashboard : MonoBehaviour
 
     public TMP_Dropdown[] DropdownEngines;
     public TMP_Dropdown   DropdownOpening;
-
-    [SerializeField] private GameObject[] ChessClocksText;
 
 
     private void
@@ -108,14 +105,6 @@ public class ArenaDashboard : MonoBehaviour
         GameObject.Find("Engine 1").SetActive(false);
         GameObject.Find("Engine 2").SetActive(false);
         GameObject.Find("Start Arena Button").SetActive(false);
-
-        if (tmr.AllotedTimePerSide == 0f) {}
-            // tmr.enabled = false;
-        else
-        {
-            ChessClocksText[0].SetActive(true);
-            ChessClocksText[1].SetActive(true);
-        }
 
         ar.ArenaEngines[0]  = EngineNames[DropdownEngines[0].value];
         ar.ArenaEngines[1]  = EngineNames[DropdownEngines[1].value];

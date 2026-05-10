@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using TMPro;
 using UnityEngine;
 
 
@@ -18,8 +17,7 @@ public class Arena : MonoBehaviour
 
     public bool fixedTimePerMove = false;
 
-    public TextMeshProUGUI CurrentGameNumText;
-    public TextMeshProUGUI  RemainingTimeText;
+    [SerializeField] private ArenaHud Hud;
 
     public string[] ArenaEngines;
     public string OpeningsFilePath;
@@ -103,7 +101,8 @@ public class Arena : MonoBehaviour
         int remainingSeconds = seconds % 60;
 
         string timeString = $"{hours} hr, {minutes} min, {remainingSeconds} secs";
-        RemainingTimeText.text = timeString;
+
+        if (Hud != null) Hud.SetEta(timeString);
     }
 
 
@@ -111,6 +110,7 @@ public class Arena : MonoBehaviour
     UpdateArenaElements(int s2s, int end_state, int prediction)
     {
         int end_result = GetResultFromState(end_state, prediction);
+        string remark  = GameRemark(end_result, end_state, prediction);
 
         // Update Wins, Loss, Draw
         ScoreSheet.Add(end_result, prediction, end_state);
@@ -127,7 +127,17 @@ public class Arena : MonoBehaviour
             ScoreSheet.PrintArenaResult();
         }
         ScoreSheet.PrintArenaResultLog(CurrentGameNum, end_result,
-            mm.Data.MoveCount(), GameRemark(end_result, end_state, prediction));
+            mm.Data.MoveCount(), remark);
+
+        if (Hud != null)
+        {
+            Hud.SetScore(ScoreSheet.Engine1Name,
+                         ScoreSheet.Engine1Wins, ScoreSheet.Engine2Wins,
+                         ScoreSheet.Draws,
+                         ScoreSheet.Engine2Name);
+            Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
+            Hud.AppendAnomaly(CurrentGameNum, end_result, remark);
+        }
     }
 
 
@@ -144,8 +154,18 @@ public class Arena : MonoBehaviour
             FixedTimePerGame, IncrementPerGame, fixedTimePerMove);
         sw = new Stopwatch();
 
-        CurrentGameNumText.gameObject.SetActive(true);
-        RemainingTimeText.gameObject.SetActive(true);
+        if (Hud != null)
+        {
+            Hud.ShowLive(true);
+            Hud.ResetAnomalies();
+            Hud.SetRound(1, GamesToPlay);
+            Hud.SetScore(ScoreSheet.Engine1Name, 0, 0, 0, ScoreSheet.Engine2Name);
+            Hud.SetEngineLabels(ArenaEngines[0], ArenaEngines[1]);
+            Hud.SetMoveList("");
+
+            // Live update during a game: each played move pushes the move list.
+            mm.OnMoveMade = () => Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
+        }
 
         StartCoroutine( PlayArena() );
     }
@@ -161,8 +181,11 @@ public class Arena : MonoBehaviour
 
         while (CurrentGameNum <= GamesToPlay)
         {
-            // Set Current Game Number Text on Board
-            CurrentGameNumText.text = "Game Number : " + CurrentGameNum.ToString();
+            if (Hud != null)
+            {
+                Hud.SetRound(CurrentGameNum, GamesToPlay);
+                Hud.SetEngineLabels(ArenaEngines[side2start], ArenaEngines[side2start ^ 1]);
+            }
 
             if (side2start == 0)
                 opening_moves = FindAnyObjectByType<OpeningBook>().NextOpening();
@@ -187,7 +210,7 @@ public class Arena : MonoBehaviour
         }
 
         // All games ended
-        CurrentGameNumText.text = "Games completed!";
+        if (Hud != null) Hud.SetRound(GamesToPlay, GamesToPlay);
         sw.Stop();
     }
 }
