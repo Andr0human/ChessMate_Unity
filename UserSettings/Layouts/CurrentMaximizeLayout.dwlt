@@ -24,7 +24,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 56}
   m_MaxSize: {x: 24288, y: 8096}
   vertical: 0
-  controlID: 47978
+  controlID: 51097
   draggingID: 0
 --- !u!114 &2
 MonoBehaviour:
@@ -155,7 +155,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 56}
   m_MaxSize: {x: 16192, y: 8096}
   vertical: 0
-  controlID: 47979
+  controlID: 51098
   draggingID: 0
 --- !u!114 &4
 MonoBehaviour:
@@ -225,10 +225,11 @@ MonoBehaviour:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
       m_SelectedIDs:
-      - m_Data: -497518
+      - m_Data: -1549562
       m_LastClickedID:
-        m_Data: -497518
+        m_Data: -1549562
       m_ExpandedIDs:
+      - m_Data: -1549562
       - m_Data: -861004
       - m_Data: -497238
       - m_Data: -475114
@@ -297,7 +298,7 @@ MonoBehaviour:
   - {fileID: 7}
   - {fileID: 2}
   m_Selected: 1
-  m_LastSelected: 1
+  m_LastSelected: 0
 --- !u!114 &7
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -319,10 +320,10 @@ MonoBehaviour:
     m_TextWithWhitespace: "Scene\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 250
-    y: 79
-    width: 1813
-    height: 906
+    x: 236.66667
+    y: 64.66667
+    width: 1138.6667
+    height: 849.3333
   m_SerializedDataModeController:
     m_DataMode: 0
     m_PreferredDataMode: 0
@@ -893,9 +894,9 @@ MonoBehaviour:
   m_AudioPlay: 0
   m_DebugDrawModesUseInteractiveLightBakingData: 0
   m_Position:
-    m_Target: {x: 7.7406573, y: 1.8124046, z: 0.039685644}
+    m_Target: {x: 3.5, y: 3.75, z: 90}
     speed: 2
-    m_Value: {x: 7.7406573, y: 1.8124046, z: 0.039685644}
+    m_Value: {x: 3.5, y: 3.75, z: 90}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -946,9 +947,9 @@ MonoBehaviour:
     speed: 2
     m_Value: {x: 0, y: 0, z: 0, w: 1}
   m_Size:
-    m_Target: 6.0313606
+    m_Target: 1.1116223
     speed: 2
-    m_Value: 6.0313606
+    m_Value: 1.1116223
   m_Ortho:
     m_Target: 1
     speed: 2
