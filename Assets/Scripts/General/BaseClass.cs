@@ -126,6 +126,8 @@ public class MatchData
     private List<ulong> occured_positions;
     private string start_pos_fen;
 
+    public int BookMoveCount { get; set; } = 0;
+
     bool first_move;
 
     public MatchData(string fen)
@@ -232,11 +234,19 @@ public class MatchData
         string res = "";
         ChessBoard board = new ChessBoard(start_pos_fen);
 
+        int i = 0;
+        bool inBook = false;
         foreach (var move in moves)
         {
+            bool isBook = i < BookMoveCount;
+            if (isBook && !inBook) { res += "<color=#C9A227>"; inBook = true; }
+            else if (!isBook && inBook) { res += "</color>"; inBook = false; }
+
             res += mg.PrintMove(move, board) + " ";
             board.MakeMove(move);
+            i++;
         }
+        if (inBook) res += "</color>";
 
         return res;
     }

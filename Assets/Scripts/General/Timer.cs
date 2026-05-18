@@ -9,6 +9,7 @@ public class Timer : MonoBehaviour
     public float[] ChessClocks;
 
     [SerializeField] private TextMeshProUGUI[] TimeInText;
+    [SerializeField] private bool ColorByTimeLeft = true;
 
     private int Side2Tick = 2;
 
@@ -52,12 +53,15 @@ public class Timer : MonoBehaviour
     public void
     TextColorChange(ref TextMeshProUGUI __t, float time_left)
     {
+        if (!ColorByTimeLeft) return;
+
+        float a = __t.color.a;
         if (time_left < 15f)
-            __t.color = new Color(0.844f, 0.086f, 0.0267f);
+            __t.color = new Color(0.844f, 0.086f, 0.0267f, a);
         else if (time_left < 45f)
-            __t.color = new Color(1f, 0.901f,0.156f);
+            __t.color = new Color(1f, 0.901f, 0.156f, a);
         else
-            __t.color = new Color(0.1297f, 0.5f, 0.16841f);
+            __t.color = new Color(0.1297f, 0.5f, 0.16841f, a);
     }
 
     public void
@@ -92,16 +96,20 @@ public class Timer : MonoBehaviour
     public string
     RemainingTime(double time_left)
     {
-        if (time_left < 15.0) {
-            return time_left.ToString("0.##");
-        }
+        if (time_left < 0.0) time_left = 0.0;
+
+        if (time_left < 15.0)
+            return string.Format("0:{0:00.0}", time_left);
+
         int sec = (int)time_left;
-        int hr = sec / 3600;
+        int hr  = sec / 3600;
         sec %= 3600;
-        int mn = sec / 60;
+        int mn  = sec / 60;
         sec %= 60;
-        string res = hr.ToString() + ":" + mn.ToString() + ":" + sec.ToString();
-        return res;
+
+        if (hr > 0)
+            return string.Format("{0}:{1:00}:{2:00}", hr, mn, sec);
+        return string.Format("{0}:{1:00}", mn, sec);
     }
 
     public void

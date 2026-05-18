@@ -17,6 +17,10 @@ public class MatchManager : MonoBehaviour
     // in Player-vs-AI). Index 0 = first player (white at game start), 1 = second.
     [SerializeField] private TMPro.TextMeshProUGUI[] PlayerEvalTexts = new TMPro.TextMeshProUGUI[2];
 
+    // Optional Arena HUD ref. When assigned, eval updates also drive the
+    // per-side eval-pill background colour and active-side card alpha.
+    [SerializeField] private ArenaHud arenaHud;
+
     private string[] PlayerNames = new string[2];
 
     [HideInInspector] public ChessBoard BoardPosition;
@@ -85,7 +89,9 @@ public class MatchManager : MonoBehaviour
 
                 Side2Move ^= 1;
             }
-        }        
+
+            Data.BookMoveCount = opening_line.Count;
+        }
     }
 
 
@@ -342,6 +348,12 @@ public class MatchManager : MonoBehaviour
         if (tmp == null) return;
 
         tmp.text = string.Format("{0:+0.00;-0.00; 0.00}", eval);
+
+        if (arenaHud != null)
+        {
+            // Side2Move still holds the just-moved side here; the next player is the opposite.
+            arenaHud.SetActiveSide(Side2Move ^ 1);
+        }
     }
 
 
