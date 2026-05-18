@@ -357,6 +357,33 @@ public class MatchManager : MonoBehaviour
     }
 
 
+    // Rebuilds the board visual to show the position after `ply` moves of the
+    // current game's MatchData have been applied. Used by Arena's post-game
+    // review (move-list click-to-seek). Does NOT mutate BoardPosition or any
+    // game state — purely a visual scrub.
+    public void
+    SeekToPly(int ply)
+    {
+        if (Data == null) return;
+
+        int total = Data.MoveCount();
+        ply = Mathf.Clamp(ply, 0, total);
+
+        ChessBoard tmp = new ChessBoard(Data.StartFen());
+        int lastMove = 0;
+        for (int i = 0; i < ply; i++)
+        {
+            int m = Data.MoveAt(i);
+            tmp.MakeMove(m);
+            lastMove = m;
+        }
+
+        bh.BoardReset(false);
+        if (lastMove != 0) bh.MarkPlayedMove(lastMove);
+        bh.Recreate(ref tmp);
+    }
+
+
     private int
     PredictionCall()
     {

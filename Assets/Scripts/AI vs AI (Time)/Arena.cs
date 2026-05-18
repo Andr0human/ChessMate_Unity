@@ -19,11 +19,18 @@ public class Arena : MonoBehaviour
 
     [SerializeField] private ArenaHud Hud;
 
+    // Time the Review button stays clickable before the arena auto-advances
+    // to the next game. Click during this window to enter review mode.
+    [SerializeField] private float ReviewCountdownSeconds = 1.5f;
+
     public string[] ArenaEngines;
     public string OpeningsFilePath;
 
     private ArenaScoreSheet ScoreSheet;
     private Stopwatch sw;
+
+    private bool continueRequested = false;
+    private bool reviewClicked = false;
 
 
     private void
@@ -165,6 +172,15 @@ public class Arena : MonoBehaviour
 
             // Live update during a game: each played move pushes the move list.
             mm.OnMoveMade = () => Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
+
+            // Post-game review wiring.
+            Hud.OnContinueClicked = () => continueRequested = true;
+            Hud.OnReviewClicked   = () => reviewClicked    = true;
+            Hud.OnMoveLinkClicked = (ply) =>
+            {
+                mm.SeekToPly(ply);
+                Hud.SetReviewPly(ply, mm.Data.MoveCount());
+            };
         }
 
         StartCoroutine( PlayArena() );
@@ -201,12 +217,44 @@ public class Arena : MonoBehaviour
 
             UpdateArenaElements(side2start, mm.EndState, mm.EndPrediction);
 
+            // Inter-game pause. With review UI wired: show a Review button
+            // ticking down for ReviewCountdownSeconds; if clicked, enter full
+            // review mode (gated on a Continue click). Otherwise auto-advance
+            // — keeps unattended 1000-game runs zero-friction.
+            if (Hud != null && Hud.ReviewSupported)
+            {
+                reviewClicked = false;
+                float remaining = ReviewCountdownSeconds;
+                Hud.BeginCountdown(remaining);
+                while (remaining > 0f && !reviewClicked)
+                {
+                    remaining -= Time.deltaTime;
+                    Hud.SetCountdownLabel(Mathf.Max(0f, remaining));
+                    yield return null;
+                }
+                Hud.EndCountdown();
+
+                if (reviewClicked)
+                {
+                    Hud.BeginReview();
+                    Hud.SetReviewPly(mm.Data.MoveCount(), mm.Data.MoveCount());
+
+                    continueRequested = false;
+                    yield return new WaitUntil(() => continueRequested);
+
+                    Hud.EndReview();
+                    // Snap board back to final pos in case user scrubbed.
+                    mm.SeekToPly(mm.Data.MoveCount());
+                }
+            }
+            else
+            {
+                yield return new WaitForSeconds(1.5f);
+            }
+
             // To next game
             CurrentGameNum++;
             side2start ^= 1;
-
-            // Wait before starting next game
-            yield return new WaitForSeconds(1.5f);
         }
 
         // All games ended

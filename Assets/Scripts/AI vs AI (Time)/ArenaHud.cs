@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 
@@ -39,6 +40,27 @@ public class ArenaHud : MonoBehaviour
     public TextMeshProUGUI MoveListText;
     public TextMeshProUGUI AnomalyText;
 
+    [Header("Post-game review")]
+    // Camera that renders the canvas (null for ScreenSpace-Overlay).
+    public Camera UICamera;
+    // Shown for ReviewCountdownSeconds after a game ends. Click → enter review.
+    // Label is driven by SetCountdownLabel each frame.
+    public Button ReviewButton;
+    public TMP_Text ReviewButtonLabel;
+    // Shown once review is entered. OnClick → OnContinueClicked → next game.
+    public Button ContinueButton;
+    // Optional visual cue overlaid on the board area when scrubbing
+    // (ply < total). Toggled by SetReviewPly.
+    public GameObject BoardGreyOverlay;
+    // Optional "● LIVE" pill shown when viewing the final position.
+    public GameObject LivePill;
+
+    // Fired when the user clicks a move in MoveListText. Argument is the
+    // number of moves applied (i.e. SeekToPly-compatible).
+    public System.Action<int> OnMoveLinkClicked;
+    public System.Action      OnContinueClicked;
+    public System.Action      OnReviewClicked;
+
     [Header("Optional containers to toggle on InitArena")]
     public GameObject[] LiveOnlyObjects;
 
@@ -51,6 +73,110 @@ public class ArenaHud : MonoBehaviour
 
     private int activeSide = -1;
     private Coroutine pulseRoutine;
+
+    private bool reviewMode = false;
+
+    // Arena uses this to decide whether to run the countdown+review flow or
+    // fall back to a fixed timed wait. Both buttons must be wired up.
+    public bool ReviewSupported => ContinueButton != null && ReviewButton != null;
+
+
+    private void
+    Awake()
+    {
+        if (ContinueButton != null)
+            ContinueButton.onClick.AddListener(() => OnContinueClicked?.Invoke());
+        if (ReviewButton != null)
+            ReviewButton.onClick.AddListener(() => OnReviewClicked?.Invoke());
+
+        if (BoardGreyOverlay != null) BoardGreyOverlay.SetActive(false);
+        if (LivePill         != null) LivePill.SetActive(false);
+        if (ContinueButton   != null) ContinueButton.gameObject.SetActive(false);
+        if (ReviewButton     != null) ReviewButton.gameObject.SetActive(false);
+
+        // Route pointer clicks on the move list through EventSystem so this
+        // works under both legacy Input Manager and the new Input System.
+        if (MoveListText != null)
+        {
+            var fwd = MoveListText.gameObject.GetComponent<MoveListClickForwarder>();
+            if (fwd == null) fwd = MoveListText.gameObject.AddComponent<MoveListClickForwarder>();
+            fwd.Hud = this;
+
+            // IPointerClickHandler needs the graphic to be raycastable.
+            MoveListText.raycastTarget = true;
+        }
+    }
+
+
+    // Called by MoveListClickForwarder when the user clicks the move-list TMP.
+    internal void
+    HandleMoveListClick(PointerEventData ev)
+    {
+        if (!reviewMode || MoveListText == null) return;
+
+        int linkIndex = TMP_TextUtilities.FindIntersectingLink(
+            MoveListText, ev.position, ev.pressEventCamera);
+        if (linkIndex < 0) return;
+
+        var linkInfo = MoveListText.textInfo.linkInfo[linkIndex];
+        if (int.TryParse(linkInfo.GetLinkID(), out int ply))
+            OnMoveLinkClicked?.Invoke(ply);
+    }
+
+
+    public void
+    BeginCountdown(float seconds)
+    {
+        if (ReviewButton != null) ReviewButton.gameObject.SetActive(true);
+        SetCountdownLabel(seconds);
+    }
+
+
+    public void
+    SetCountdownLabel(float remaining)
+    {
+        if (ReviewButtonLabel == null) return;
+        ReviewButtonLabel.text = $"Review ({remaining:0.0}s)";
+    }
+
+
+    public void
+    EndCountdown()
+    {
+        if (ReviewButton != null) ReviewButton.gameObject.SetActive(false);
+    }
+
+
+    public void
+    BeginReview()
+    {
+        reviewMode = true;
+        if (ContinueButton != null) ContinueButton.gameObject.SetActive(true);
+        if (LivePill       != null) LivePill.SetActive(true);
+        // Idle both sides so the clock pulse stops during review.
+        SetActiveSide(-1);
+    }
+
+
+    public void
+    EndReview()
+    {
+        reviewMode = false;
+        if (ContinueButton   != null) ContinueButton.gameObject.SetActive(false);
+        if (LivePill         != null) LivePill.SetActive(false);
+        if (BoardGreyOverlay != null) BoardGreyOverlay.SetActive(false);
+    }
+
+
+    // Drives the grey overlay + LIVE pill while scrubbing. ply == totalPlies
+    // means "on the live final position".
+    public void
+    SetReviewPly(int ply, int totalPlies)
+    {
+        bool atLive = (ply >= totalPlies);
+        if (BoardGreyOverlay != null) BoardGreyOverlay.SetActive(!atLive);
+        if (LivePill         != null) LivePill.SetActive(atLive);
+    }
 
 
     public void
@@ -184,11 +310,68 @@ public class ArenaHud : MonoBehaviour
     }
 
 
+    private string moveListBase = "";
+    private int    hoveredLinkId = -1;
+
+
     public void
     SetMoveList(string moves)
     {
-        if (MoveListText != null)
-            MoveListText.text = moves;
+        moveListBase = moves ?? "";
+        RefreshMoveListText();
+    }
+
+
+    // Called by MoveListClickForwarder on pointer move/exit. ev == null means
+    // the pointer left the text — clear hover.
+    internal void
+    HandleMoveListHover(PointerEventData ev)
+    {
+        int newId = -1;
+        if (ev != null && MoveListText != null)
+        {
+            int li = TMP_TextUtilities.FindIntersectingLink(
+                MoveListText, ev.position, UICamera);
+            if (li >= 0)
+            {
+                var info = MoveListText.textInfo.linkInfo[li];
+                int.TryParse(info.GetLinkID(), out newId);
+            }
+        }
+        if (newId != hoveredLinkId)
+        {
+            hoveredLinkId = newId;
+            RefreshMoveListText();
+        }
+    }
+
+
+    private void
+    RefreshMoveListText()
+    {
+        if (MoveListText == null) return;
+        MoveListText.text = ApplyHoverUnderline(moveListBase, hoveredLinkId);
+    }
+
+
+    // Wraps the hovered link's inner text in <u>…</u>. Underline chosen over
+    // <mark> because TMP <mark> rendering is finicky across versions.
+    private static string
+    ApplyHoverUnderline(string baseText, int linkId)
+    {
+        if (linkId < 0 || string.IsNullOrEmpty(baseText)) return baseText;
+
+        string startTag = "<link=\"" + linkId + "\">";
+        int start = baseText.IndexOf(startTag);
+        if (start < 0) return baseText;
+
+        int innerStart = start + startTag.Length;
+        int end = baseText.IndexOf("</link>", innerStart);
+        if (end < 0) return baseText;
+
+        return baseText.Substring(0, innerStart)
+             + "<u>" + baseText.Substring(innerStart, end - innerStart) + "</u>"
+             + baseText.Substring(end);
     }
 
 
@@ -215,5 +398,29 @@ public class ArenaHud : MonoBehaviour
     {
         anomalies.Clear();
         if (AnomalyText != null) AnomalyText.text = "";
+    }
+}
+
+
+// Auto-attached to the MoveListText GameObject. Forwards EventSystem pointer
+// clicks back to ArenaHud — works under both legacy and new Input System.
+public class MoveListClickForwarder : MonoBehaviour,
+    IPointerClickHandler, IPointerMoveHandler, IPointerExitHandler
+{
+    [HideInInspector] public ArenaHud Hud;
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (Hud != null) Hud.HandleMoveListClick(eventData);
+    }
+
+    public void OnPointerMove(PointerEventData eventData)
+    {
+        if (Hud != null) Hud.HandleMoveListHover(eventData);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (Hud != null) Hud.HandleMoveListHover(null);
     }
 }
