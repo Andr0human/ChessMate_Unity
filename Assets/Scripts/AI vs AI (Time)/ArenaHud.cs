@@ -68,6 +68,17 @@ public class ArenaHud : MonoBehaviour
     public TextMeshProUGUI SummaryText;
     public Button OpenPgnButton;
 
+    [Header("Eval bar")]
+    // Vertical strip left of the board. Markers slide along its height.
+    public RectTransform EvalBarRoot;
+    // Per engine-identity markers: index 0 = ArenaEngines[0], 1 = [1].
+    // Must be children of EvalBarRoot with a vertical-centre pivot so
+    // anchoredPosition.y == 0 sits at the bar's midpoint.
+    public RectTransform[] EvalMarkers = new RectTransform[2];
+    // Sigmoid scale (pawns) — larger = gentler curve, small evals less
+    // sensitive. ~4 keeps a ±1-pawn edge visible without big evals pinning.
+    public float EvalSigmoidScale = 4f;
+
     // Fired when the user clicks a move in MoveListText. Argument is the
     // number of moves applied (i.e. SeekToPly-compatible).
     public System.Action<int> OnMoveLinkClicked;
@@ -90,6 +101,10 @@ public class ArenaHud : MonoBehaviour
 
     private bool reviewMode = false;
 
+    // Which engine-identity eval marker is playing White this game (0/1).
+    // Sides alternate each round, so Arena refreshes this per game.
+    private int evalWhiteMarker = 0;
+
     // Arena uses this to decide whether to run the countdown+review flow or
     // fall back to a fixed timed wait. Both buttons must be wired up.
     public bool ReviewSupported => ContinueButton != null && ReviewButton != null;
@@ -107,6 +122,7 @@ public class ArenaHud : MonoBehaviour
 
         if (BoardGreyOverlay != null) BoardGreyOverlay.SetActive(false);
         if (LivePill         != null) LivePill.SetActive(false);
+        if (EvalBarRoot      != null) EvalBarRoot.gameObject.SetActive(false);
         if (ContinueButton   != null) ContinueButton.gameObject.SetActive(false);
         if (ReviewButton     != null) ReviewButton.gameObject.SetActive(false);
         if (ResultCardRoot   != null) ResultCardRoot.SetActive(false);
@@ -231,9 +247,46 @@ public class ArenaHud : MonoBehaviour
     }
 
 
+    // Which engine-identity marker (0/1) plays White this game. Arena calls
+    // this each game because the engines swap colours every round.
+    public void
+    SetEvalSide(int whiteMarkerIndex)
+    {
+        evalWhiteMarker = whiteMarkerIndex & 1;
+    }
+
+
+    // whiteEval / blackEval are white-relative pawn units (from
+    // MatchData.EvalsAtPly). Routed to the correct engine marker.
+    public void
+    SetEvalMarkers(float whiteEval, float blackEval)
+    {
+        PlaceEvalMarker(evalWhiteMarker,     whiteEval);
+        PlaceEvalMarker(evalWhiteMarker ^ 1, blackEval);
+    }
+
+
+    private void
+    PlaceEvalMarker(int idx, float whiteRelEval)
+    {
+        if (EvalMarkers == null || idx < 0 || idx >= EvalMarkers.Length) return;
+        var m = EvalMarkers[idx];
+        if (m == null || EvalBarRoot == null) return;
+
+        // Sigmoid: 0 eval → bar centre, +ve → top (white winning).
+        float t = 1f / (1f + Mathf.Exp(-whiteRelEval / Mathf.Max(0.01f, EvalSigmoidScale)));
+        float h = EvalBarRoot.rect.height;
+
+        var p = m.anchoredPosition;
+        m.anchoredPosition = new Vector2(p.x, (t - 0.5f) * h);
+    }
+
+
     public void
     ShowLive(bool live)
     {
+        if (EvalBarRoot != null) EvalBarRoot.gameObject.SetActive(live);
+
         if (LiveOnlyObjects == null) return;
         foreach (var go in LiveOnlyObjects)
             if (go != null) go.SetActive(live);

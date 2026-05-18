@@ -207,6 +207,25 @@ public class MatchData
         return (evals[n - 2], evals[n - 1]);
     }
 
+    // Most recent white-side and black-side evals among the first `ply`
+    // plies. White plies are even indices, black odd. Both values are
+    // white-relative pawn units (see Player.ParseInfoScore). Returns 0 for
+    // a side that has not moved yet. Used by the Arena eval bar — live
+    // (ply == MoveCount) and during review-seek.
+    public (float white, float black)
+    EvalsAtPly(int ply)
+    {
+        ply = Mathf.Clamp(ply, 0, evals.Count);
+
+        float w = 0f, b = 0f;
+        for (int i = 0; i < ply; i++)
+        {
+            if ((i & 1) == 0) w = evals[i];
+            else              b = evals[i];
+        }
+        return (w, b);
+    }
+
     public bool
     DrawnPositionForContinuousMoves(float draw_margin, int length)
     {
