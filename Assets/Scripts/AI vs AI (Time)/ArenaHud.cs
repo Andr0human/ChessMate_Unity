@@ -55,11 +55,25 @@ public class ArenaHud : MonoBehaviour
     // Optional "● LIVE" pill shown when viewing the final position.
     public GameObject LivePill;
 
+    [Header("Result card (per-game + tournament-end)")]
+    // Shared card container — no dim backdrop, sits in a fixed slot. Hosts
+    // either GameResultGroup or SummaryGroup depending on which Show* runs.
+    public GameObject ResultCardRoot;
+    // Per-game layout: title + remark + the Review button/countdown.
+    public GameObject GameResultGroup;
+    // Tournament-end layout: final summary + Open PGNs button.
+    public GameObject SummaryGroup;
+    public TextMeshProUGUI ResultTitleText;
+    public TextMeshProUGUI ResultRemarkText;
+    public TextMeshProUGUI SummaryText;
+    public Button OpenPgnButton;
+
     // Fired when the user clicks a move in MoveListText. Argument is the
     // number of moves applied (i.e. SeekToPly-compatible).
     public System.Action<int> OnMoveLinkClicked;
     public System.Action      OnContinueClicked;
     public System.Action      OnReviewClicked;
+    public System.Action      OnOpenPgnClicked;
 
     [Header("Optional containers to toggle on InitArena")]
     public GameObject[] LiveOnlyObjects;
@@ -88,11 +102,14 @@ public class ArenaHud : MonoBehaviour
             ContinueButton.onClick.AddListener(() => OnContinueClicked?.Invoke());
         if (ReviewButton != null)
             ReviewButton.onClick.AddListener(() => OnReviewClicked?.Invoke());
+        if (OpenPgnButton != null)
+            OpenPgnButton.onClick.AddListener(() => OnOpenPgnClicked?.Invoke());
 
         if (BoardGreyOverlay != null) BoardGreyOverlay.SetActive(false);
         if (LivePill         != null) LivePill.SetActive(false);
         if (ContinueButton   != null) ContinueButton.gameObject.SetActive(false);
         if (ReviewButton     != null) ReviewButton.gameObject.SetActive(false);
+        if (ResultCardRoot   != null) ResultCardRoot.SetActive(false);
 
         // Route pointer clicks on the move list through EventSystem so this
         // works under both legacy Input Manager and the new Input System.
@@ -165,6 +182,41 @@ public class ArenaHud : MonoBehaviour
         if (ContinueButton   != null) ContinueButton.gameObject.SetActive(false);
         if (LivePill         != null) LivePill.SetActive(false);
         if (BoardGreyOverlay != null) BoardGreyOverlay.SetActive(false);
+    }
+
+
+    // Per-game result card. title = "Game N · 1-0 — White wins …",
+    // remark = the GameRemark string (empty for an unremarkable game).
+    public void
+    ShowGameResult(string title, string remark)
+    {
+        if (ResultCardRoot   != null) ResultCardRoot.SetActive(true);
+        if (GameResultGroup  != null) GameResultGroup.SetActive(true);
+        if (SummaryGroup     != null) SummaryGroup.SetActive(false);
+        if (ResultTitleText  != null) ResultTitleText.text  = title;
+        if (ResultRemarkText != null)
+        {
+            ResultRemarkText.text = remark ?? "";
+            ResultRemarkText.gameObject.SetActive(!string.IsNullOrEmpty(remark));
+        }
+    }
+
+
+    // Tournament-end summary — same card, swapped layout group.
+    public void
+    ShowSummary(string summary)
+    {
+        if (ResultCardRoot  != null) ResultCardRoot.SetActive(true);
+        if (GameResultGroup != null) GameResultGroup.SetActive(false);
+        if (SummaryGroup    != null) SummaryGroup.SetActive(true);
+        if (SummaryText     != null) SummaryText.text = summary;
+    }
+
+
+    public void
+    HideResultCard()
+    {
+        if (ResultCardRoot != null) ResultCardRoot.SetActive(false);
     }
 
 

@@ -31,6 +31,7 @@ public class Arena : MonoBehaviour
 
     private bool continueRequested = false;
     private bool reviewClicked = false;
+    private int  anomalyCount = 0;
 
 
     private void
@@ -113,11 +114,13 @@ public class Arena : MonoBehaviour
     }
 
 
-    private void
+    private (int result, string remark)
     UpdateArenaElements(int s2s, int end_state, int prediction)
     {
         int end_result = GetResultFromState(end_state, prediction);
         string remark  = GameRemark(end_result, end_state, prediction);
+
+        if (!string.IsNullOrEmpty(remark)) anomalyCount++;
 
         // Update Wins, Loss, Draw
         ScoreSheet.Add(end_result, prediction, end_state);
@@ -145,6 +148,26 @@ public class Arena : MonoBehaviour
             Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
             Hud.AppendAnomaly(CurrentGameNum, end_result, remark);
         }
+
+        return (end_result, remark);
+    }
+
+
+    private static string
+    StateLabel(int state)
+    {
+        switch (state)
+        {
+            case 1: return "White wins by checkmate";
+            case 2: return "Black wins by checkmate";
+            case 3: return "Draw by stalemate";
+            case 4: return "Draw by insufficient material";
+            case 5: return "Draw by 3-fold repetition";
+            case 6: return "Draw by 50-move rule";
+            case 7: return "White wins on time";
+            case 8: return "Black wins on time";
+            default: return "Game over";
+        }
     }
 
 
@@ -160,6 +183,10 @@ public class Arena : MonoBehaviour
         ScoreSheet = new ArenaScoreSheet(ArenaEngines[0], ArenaEngines[1],
             FixedTimePerGame, IncrementPerGame, fixedTimePerMove);
         sw = new Stopwatch();
+
+        // Per-game result shows in the HUD result card, not the shared
+        // EndScreen — keeps the left-of-board space clear for the eval bar.
+        mm.SuppressEndScreen = true;
 
         if (Hud != null)
         {
@@ -180,6 +207,12 @@ public class Arena : MonoBehaviour
             {
                 mm.SeekToPly(ply);
                 Hud.SetReviewPly(ply, mm.Data.MoveCount());
+            };
+            Hud.OnOpenPgnClicked = () =>
+            {
+                string games = Application.streamingAssetsPath + "/arena/Games/";
+                if (!Directory.Exists(games)) Directory.CreateDirectory(games);
+                Application.OpenURL("file://" + games);
             };
         }
 
@@ -215,14 +248,18 @@ public class Arena : MonoBehaviour
                 Application.streamingAssetsPath + "/arena", CurrentGameNum
             ));
 
-            UpdateArenaElements(side2start, mm.EndState, mm.EndPrediction);
+            var (_, remark) =
+                UpdateArenaElements(side2start, mm.EndState, mm.EndPrediction);
 
-            // Inter-game pause. With review UI wired: show a Review button
-            // ticking down for ReviewCountdownSeconds; if clicked, enter full
-            // review mode (gated on a Continue click). Otherwise auto-advance
-            // — keeps unattended 1000-game runs zero-friction.
+            // Inter-game pause. With review UI wired: pop the per-game result
+            // card with a Review button ticking down for ReviewCountdownSeconds;
+            // if clicked, enter full review mode (gated on a Continue click).
+            // Otherwise the card auto-dismisses — keeps unattended 1000-game
+            // runs zero-friction.
             if (Hud != null && Hud.ReviewSupported)
             {
+                Hud.ShowGameResult(StateLabel(mm.EndState), remark);
+
                 reviewClicked = false;
                 float remaining = ReviewCountdownSeconds;
                 Hud.BeginCountdown(remaining);
@@ -233,6 +270,7 @@ public class Arena : MonoBehaviour
                     yield return null;
                 }
                 Hud.EndCountdown();
+                Hud.HideResultCard();
 
                 if (reviewClicked)
                 {
@@ -258,8 +296,25 @@ public class Arena : MonoBehaviour
         }
 
         // All games ended
-        if (Hud != null) Hud.SetRound(GamesToPlay, GamesToPlay);
         sw.Stop();
+
+        if (Hud != null)
+        {
+            Hud.SetRound(GamesToPlay, GamesToPlay);
+
+            int secs    = (int)sw.Elapsed.TotalSeconds;
+            string time = $"{secs / 3600} hr, {(secs % 3600) / 60} min, {secs % 60} secs";
+
+            string summary =
+                "Tournament complete\n\n" +
+                $"{ScoreSheet.Engine1Name}  {ScoreSheet.Engine1Wins} — " +
+                $"{ScoreSheet.Engine2Wins}  {ScoreSheet.Engine2Name}\n" +
+                $"{ScoreSheet.Draws} draw(s)\n" +
+                $"Total time: {time}\n" +
+                $"Anomalies: {anomalyCount}";
+
+            Hud.ShowSummary(summary);
+        }
     }
 }
 

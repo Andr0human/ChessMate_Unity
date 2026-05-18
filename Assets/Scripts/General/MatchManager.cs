@@ -13,6 +13,11 @@ public class MatchManager : MonoBehaviour
 
     [SerializeField] private GameObject EndScreen;
 
+    // Arena suppresses the shared EndScreen (result text + its Continue
+    // button) so the per-game result shows in ArenaHud's result card instead,
+    // freeing the left-of-board space for the eval bar.
+    [HideInInspector] public bool SuppressEndScreen = false;
+
     // Optional per-side eval display (used by the Arena scene; left unassigned
     // in Player-vs-AI). Index 0 = first player (white at game start), 1 = second.
     [SerializeField] private TMPro.TextMeshProUGUI[] PlayerEvalTexts = new TMPro.TextMeshProUGUI[2];
@@ -312,6 +317,8 @@ public class MatchManager : MonoBehaviour
     private void
     GameOverScreen(int state)
     {
+        if (SuppressEndScreen) return;
+
         string res = "";
 
         if (state == 1) res = "White wins by checkmate!";
