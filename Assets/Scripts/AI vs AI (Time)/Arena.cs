@@ -197,14 +197,8 @@ public class Arena : MonoBehaviour
             Hud.SetEngineLabels(ArenaEngines[0], ArenaEngines[1]);
             Hud.SetMoveList("");
 
-            // Live update during a game: each played move pushes the move
-            // list and slides the eval-bar markers.
-            mm.OnMoveMade = () =>
-            {
-                Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
-                var (w, b) = mm.Data.EvalsAtPly(mm.Data.MoveCount());
-                Hud.SetEvalMarkers(w, b);
-            };
+            // Live update during a game: each played move pushes the move list.
+            mm.OnMoveMade = () => Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
 
             // Post-game review wiring.
             Hud.OnContinueClicked = () => continueRequested = true;
@@ -213,8 +207,6 @@ public class Arena : MonoBehaviour
             {
                 mm.SeekToPly(ply);
                 Hud.SetReviewPly(ply, mm.Data.MoveCount());
-                var (w, b) = mm.Data.EvalsAtPly(ply);
-                Hud.SetEvalMarkers(w, b);
             };
             Hud.OnOpenPgnClicked = () =>
             {
@@ -242,11 +234,6 @@ public class Arena : MonoBehaviour
             {
                 Hud.SetRound(CurrentGameNum, GamesToPlay);
                 Hud.SetEngineLabels(ArenaEngines[side2start], ArenaEngines[side2start ^ 1]);
-
-                // ArenaEngines[side2start] plays White this game, so its
-                // eval marker (index == side2start) tracks the white eval.
-                Hud.SetEvalSide(side2start);
-                Hud.SetEvalMarkers(0f, 0f);
             }
 
             if (side2start == 0)
