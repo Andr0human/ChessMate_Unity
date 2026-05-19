@@ -24,7 +24,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 56}
   m_MaxSize: {x: 24288, y: 8096}
   vertical: 0
-  controlID: 619
+  controlID: 39
   draggingID: 0
 --- !u!114 &2
 MonoBehaviour:
@@ -76,7 +76,7 @@ MonoBehaviour:
   m_TextureFilterMode: 0
   m_TextureHideFlags: 61
   m_RenderIMGUI: 1
-  m_EnterPlayModeBehavior: 1
+  m_EnterPlayModeBehavior: 0
   m_UseMipMap: 0
   m_VSyncEnabled: 0
   m_Gizmos: 0
@@ -155,7 +155,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 56}
   m_MaxSize: {x: 16192, y: 8096}
   vertical: 0
-  controlID: 620
+  controlID: 40
   draggingID: 0
 --- !u!114 &4
 MonoBehaviour:
@@ -228,28 +228,7 @@ MonoBehaviour:
       m_LastClickedID:
         m_Data: 0
       m_ExpandedIDs:
-      - m_Data: -1626536
-      - m_Data: -861004
-      - m_Data: -497238
-      - m_Data: -475114
-      - m_Data: -439938
-      - m_Data: -439828
-      - m_Data: -439690
-      - m_Data: -129498
-      - m_Data: -111166
-      - m_Data: -60348
-      - m_Data: -37392
       - m_Data: -1384
-      - m_Data: 41680
-      - m_Data: 42148
-      - m_Data: 42168
-      - m_Data: 42222
-      - m_Data: 42992
-      - m_Data: 43820
-      - m_Data: 47308
-      - m_Data: 103806
-      - m_Data: 105084
-      - m_Data: 105796
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -1058,8 +1037,8 @@ MonoBehaviour:
     m_ControlHash: -371814159
     m_PrefName: Preview_InspectorPreview
   m_LastInspectedObjectEntityId:
-    m_Data: 47466
-  m_LastVerticalScrollValue: 549.3333
+    m_Data: 0
+  m_LastVerticalScrollValue: 0
   m_GlobalObjectId: 
   m_InspectorMode: 0
   m_LockTracker:

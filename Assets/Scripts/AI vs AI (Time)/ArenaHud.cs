@@ -23,18 +23,39 @@ public class ArenaHud : MonoBehaviour
     [Header("Engine cards")]
     public TextMeshProUGUI WhiteEngineLabel;
     public TextMeshProUGUI BlackEngineLabel;
-    // Index 0 = white-side card, 1 = black-side card. Alpha-toggled by SetActiveSide.
+    // Index 0 = white-side card, 1 = black-side card. Neutralised to alpha 1
+    // by ApplyCardTheme — the chess.com-style theme no longer dims cards.
     public CanvasGroup[] EngineCardGroups = new CanvasGroup[2];
     // Index 0 = white clock TMP, 1 = black clock TMP. Pulsed for the active side.
     public TextMeshProUGUI[] ClockTexts = new TextMeshProUGUI[2];
 
-    [Header("Active-side name styling")]
-    public Color ActiveNameColor = new Color(1.000f, 1.000f, 1.000f, 1f);
-    public Color IdleNameColor   = new Color(0.627f, 0.627f, 0.627f, 1f); // #A0A0A0
+    [Header("Engine card theme — chess.com-style")]
+    // Background Images of the white-slot (bottom) and black-slot (top) cards.
+    // Cards are positionally fixed; only their text contents swap per game.
+    public Image WhiteCardBg;
+    public Image BlackCardBg;
+    public Color WhiteCardColor = new Color(0.925f, 0.925f, 0.925f, 1f); // #ECECEC
+    public Color BlackCardColor = new Color(0.122f, 0.122f, 0.122f, 1f); // #1F1F1F
+
+    [Header("Engine card text colors")]
+    // Engine names carry a fixed colour — dark on the white card, light on
+    // the black card. No active/idle restyle; the clock pulse is the only
+    // side-to-move cue.
+    public Color WhiteCardTextColor = new Color(0.102f, 0.102f, 0.102f, 1f); // #1A1A1A
+    public Color BlackCardTextColor = new Color(1.000f, 1.000f, 1.000f, 1f);
 
     [Header("Active clock pulse")]
-    public float PulseMinAlpha = 0.35f;
-    public float PulseSpeed    = 2.0f; // cycles per second
+    // Both clocks sit in their own dark sub-box, so they stay light text
+    // regardless of which card carries them.
+    public Color ClockTextColor = new Color(1f, 1f, 1f, 1f);
+    public float PulseMinAlpha  = 0.35f;
+    public float PulseSpeed     = 2.0f; // cycles per second
+
+    [Header("Clock icon (spins on the side to move)")]
+    // Index 0 = white card icon, 1 = black card icon. Optional — a small
+    // clock sprite placed before the clock text. Only the active side spins.
+    public Image[] ClockIcons = new Image[2];
+    public float ClockIconSpinSpeed = 90f; // degrees/sec, clockwise
 
     [Header("Side panel")]
     public TextMeshProUGUI MoveListText;
@@ -78,10 +99,6 @@ public class ArenaHud : MonoBehaviour
     [Header("Optional containers to toggle on InitArena")]
     public GameObject[] LiveOnlyObjects;
 
-    [Header("Active-side card alpha")]
-    [Range(0f, 1f)] public float ActiveCardAlpha = 1.00f;
-    [Range(0f, 1f)] public float IdleCardAlpha   = 0.65f;
-
     private readonly List<string> anomalies = new List<string>();
     private const int MaxAnomalies = 8;
 
@@ -110,6 +127,8 @@ public class ArenaHud : MonoBehaviour
         if (ContinueButton   != null) ContinueButton.gameObject.SetActive(false);
         if (ReviewButton     != null) ReviewButton.gameObject.SetActive(false);
         if (ResultCardRoot   != null) ResultCardRoot.SetActive(false);
+
+        ApplyCardTheme();
 
         // Route pointer clicks on the move list through EventSystem so this
         // works under both legacy Input Manager and the new Input System.
@@ -287,23 +306,60 @@ public class ArenaHud : MonoBehaviour
     }
 
 
+    // Paints the static card theme: chess.com-style white/dark backgrounds,
+    // accent borders (hidden until SetActiveSide), neutral card alpha, and
+    // per-card clock base colours.
+    private void
+    ApplyCardTheme()
+    {
+        if (WhiteCardBg != null) WhiteCardBg.color = WhiteCardColor;
+        if (BlackCardBg != null) BlackCardBg.color = BlackCardColor;
+
+        if (WhiteCardBorder != null)
+        {
+            WhiteCardBorder.color   = AccentColor;
+            WhiteCardBorder.enabled = false;
+        }
+        if (BlackCardBorder != null)
+        {
+            BlackCardBorder.color   = AccentColor;
+            BlackCardBorder.enabled = false;
+        }
+
+        // The theme drops card dimming — clear any stale idle alpha.
+        if (EngineCardGroups != null)
+            foreach (var g in EngineCardGroups)
+                if (g != null) g.alpha = 1f;
+
+        // Engine names: fixed colour per card, no active/idle restyle.
+        if (WhiteEngineLabel != null) WhiteEngineLabel.color = WhiteCardTextColor;
+        if (BlackEngineLabel != null) BlackEngineLabel.color = BlackCardTextColor;
+
+        // Clock base RGB; the pulse coroutine only drives alpha. Both clocks
+        // are light text — each sits in its own dark sub-box.
+        SetClockBaseColor(0, ClockTextColor);
+        SetClockBaseColor(1, ClockTextColor);
+    }
+
+
+    private void
+    SetClockBaseColor(int idx, Color rgb)
+    {
+        if (ClockTexts == null || idx >= ClockTexts.Length || ClockTexts[idx] == null) return;
+        float a = ClockTexts[idx].color.a;
+        ClockTexts[idx].color = new Color(rgb.r, rgb.g, rgb.b, a);
+    }
+
+
     public void
     SetActiveSide(int side)
     {
         activeSide = side;
 
-        if (EngineCardGroups != null)
-        {
-            for (int i = 0; i < EngineCardGroups.Length; i++)
-            {
-                if (EngineCardGroups[i] == null) continue;
-                EngineCardGroups[i].alpha = (i == side) ? ActiveCardAlpha : IdleCardAlpha;
-            }
-        }
-
-        // Name styling: active = bold + bright, idle = normal + dim.
-        StyleName(WhiteEngineLabel, side == 0);
-        StyleName(BlackEngineLabel, side == 1);
+        // chess.com-style: cards keep full colour; the accent border marks
+        // the side to move (side < 0 during review hides both).
+        if (WhiteCardBorder != null) WhiteCardBorder.enabled = (side == 0);
+        if (BlackCardBorder != null) BlackCardBorder.enabled = (side == 1);
 
         // Reset idle clock alpha to fully opaque; the pulse coroutine drives the active one.
         for (int i = 0; i < ClockTexts.Length; i++)
@@ -316,17 +372,18 @@ public class ArenaHud : MonoBehaviour
             }
         }
 
+        // Reset idle clock icons to upright; the active one spins in PulseActiveClock.
+        if (ClockIcons != null)
+        {
+            for (int i = 0; i < ClockIcons.Length; i++)
+            {
+                if (ClockIcons[i] != null && i != side)
+                    ClockIcons[i].rectTransform.localRotation = Quaternion.identity;
+            }
+        }
+
         if (pulseRoutine != null) StopCoroutine(pulseRoutine);
         if (isActiveAndEnabled) pulseRoutine = StartCoroutine(PulseActiveClock());
-    }
-
-
-    private void
-    StyleName(TextMeshProUGUI tmp, bool active)
-    {
-        if (tmp == null) return;
-        tmp.fontStyle = active ? FontStyles.Bold : FontStyles.Normal;
-        tmp.color     = active ? ActiveNameColor : IdleNameColor;
     }
 
 
@@ -345,6 +402,14 @@ public class ArenaHud : MonoBehaviour
             var clk = ClockTexts[activeSide];
             var c = clk.color;
             clk.color = new Color(c.r, c.g, c.b, a);
+
+            // Spin the active side's clock icon clockwise (negative z).
+            if (ClockIcons != null && activeSide < ClockIcons.Length
+                && ClockIcons[activeSide] != null)
+            {
+                ClockIcons[activeSide].rectTransform.Rotate(
+                    0f, 0f, -ClockIconSpinSpeed * Time.deltaTime);
+            }
 
             yield return null;
         }
