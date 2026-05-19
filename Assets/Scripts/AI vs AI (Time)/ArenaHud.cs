@@ -307,24 +307,12 @@ public class ArenaHud : MonoBehaviour
 
 
     // Paints the static card theme: chess.com-style white/dark backgrounds,
-    // accent borders (hidden until SetActiveSide), neutral card alpha, and
-    // per-card clock base colours.
+    // neutral card alpha, and per-card clock base colours.
     private void
     ApplyCardTheme()
     {
         if (WhiteCardBg != null) WhiteCardBg.color = WhiteCardColor;
         if (BlackCardBg != null) BlackCardBg.color = BlackCardColor;
-
-        if (WhiteCardBorder != null)
-        {
-            WhiteCardBorder.color   = AccentColor;
-            WhiteCardBorder.enabled = false;
-        }
-        if (BlackCardBorder != null)
-        {
-            BlackCardBorder.color   = AccentColor;
-            BlackCardBorder.enabled = false;
-        }
 
         // The theme drops card dimming — clear any stale idle alpha.
         if (EngineCardGroups != null)
@@ -356,10 +344,8 @@ public class ArenaHud : MonoBehaviour
     {
         activeSide = side;
 
-        // chess.com-style: cards keep full colour; the accent border marks
-        // the side to move (side < 0 during review hides both).
-        if (WhiteCardBorder != null) WhiteCardBorder.enabled = (side == 0);
-        if (BlackCardBorder != null) BlackCardBorder.enabled = (side == 1);
+        // chess.com-style: cards keep full colour; the clock pulse + spinning
+        // clock icon are the only side-to-move cue (side < 0 during review).
 
         // Reset idle clock alpha to fully opaque; the pulse coroutine drives the active one.
         for (int i = 0; i < ClockTexts.Length; i++)

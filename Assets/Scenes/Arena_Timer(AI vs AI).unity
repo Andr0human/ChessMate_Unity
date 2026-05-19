@@ -12906,9 +12906,6 @@ MonoBehaviour:
   BlackCardBg: {fileID: 1384719934}
   WhiteCardColor: {r: 0.925, g: 0.925, b: 0.925, a: 1}
   BlackCardColor: {r: 0.122, g: 0.122, b: 0.122, a: 1}
-  WhiteCardBorder: {fileID: 0}
-  BlackCardBorder: {fileID: 0}
-  AccentColor: {r: 0.478, g: 0.733, b: 0.275, a: 1}
   WhiteCardTextColor: {r: 0.102, g: 0.102, b: 0.102, a: 1}
   BlackCardTextColor: {r: 1, g: 1, b: 1, a: 1}
   ClockTextColor: {r: 1, g: 1, b: 1, a: 1}
