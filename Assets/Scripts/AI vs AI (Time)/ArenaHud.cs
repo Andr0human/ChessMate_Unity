@@ -60,6 +60,8 @@ public class ArenaHud : MonoBehaviour
     [Header("Side panel")]
     public TextMeshProUGUI MoveListText;
     public TextMeshProUGUI AnomalyText;
+    // Background highlight drawn on the move currently shown in review mode.
+    public Color ReviewMoveHighlight = new Color(0.96f, 0.82f, 0.25f, 0.30f);
 
     [Header("Post-game review")]
     // Camera that renders the canvas (null for ScreenSpace-Overlay).
@@ -201,6 +203,7 @@ public class ArenaHud : MonoBehaviour
         if (ContinueButton   != null) ContinueButton.gameObject.SetActive(false);
         if (LivePill         != null) LivePill.SetActive(false);
         if (BoardGreyOverlay != null) BoardGreyOverlay.SetActive(false);
+        SetCurrentMove(-1);
     }
 
 
@@ -415,6 +418,9 @@ public class ArenaHud : MonoBehaviour
 
     private string moveListBase = "";
     private int    hoveredLinkId = -1;
+    // Link id of the move currently being reviewed (== reviewPly in Arena).
+    // -1 / 0 means no move is highlighted (start position or not reviewing).
+    private int    currentMoveLinkId = -1;
 
 
     public void
@@ -449,18 +455,35 @@ public class ArenaHud : MonoBehaviour
     }
 
 
+    // Sets the move highlighted in review mode. ply is the SeekToPly-style
+    // count of moves applied; it maps directly to the move-list link id.
+    public void
+    SetCurrentMove(int ply)
+    {
+        if (currentMoveLinkId == ply) return;
+        currentMoveLinkId = ply;
+        RefreshMoveListText();
+    }
+
+
     private void
     RefreshMoveListText()
     {
         if (MoveListText == null) return;
-        MoveListText.text = ApplyHoverUnderline(moveListBase, hoveredLinkId);
+
+        string t = moveListBase;
+        // Current-review move first (background box), hover underline on top.
+        string markOpen = "<mark=#" + ToHex8(ReviewMoveHighlight) + ">";
+        t = WrapLinkInner(t, currentMoveLinkId, markOpen, "</mark>");
+        t = WrapLinkInner(t, hoveredLinkId, "<u>", "</u>");
+        MoveListText.text = t;
     }
 
 
-    // Wraps the hovered link's inner text in <u>…</u>. Underline chosen over
-    // <mark> because TMP <mark> rendering is finicky across versions.
+    // Wraps the given link's inner text in openTag…closeTag. Used for the
+    // hover underline and the review-mode current-move highlight.
     private static string
-    ApplyHoverUnderline(string baseText, int linkId)
+    WrapLinkInner(string baseText, int linkId, string openTag, string closeTag)
     {
         if (linkId < 0 || string.IsNullOrEmpty(baseText)) return baseText;
 
@@ -473,8 +496,15 @@ public class ArenaHud : MonoBehaviour
         if (end < 0) return baseText;
 
         return baseText.Substring(0, innerStart)
-             + "<u>" + baseText.Substring(innerStart, end - innerStart) + "</u>"
+             + openTag + baseText.Substring(innerStart, end - innerStart) + closeTag
              + baseText.Substring(end);
+    }
+
+
+    private static string
+    ToHex8(Color c)
+    {
+        return ColorUtility.ToHtmlStringRGBA(c);
     }
 
 

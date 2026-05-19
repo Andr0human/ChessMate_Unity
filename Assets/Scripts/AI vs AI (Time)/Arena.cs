@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 
 public class Arena : MonoBehaviour
@@ -32,6 +33,26 @@ public class Arena : MonoBehaviour
     private bool continueRequested = false;
     private bool reviewClicked = false;
     private int  anomalyCount = 0;
+
+    // Ply currently shown while in review mode. Driven by move-list clicks
+    // and Left/Right arrow keyboard navigation.
+    private int  reviewPly = 0;
+
+
+    // Clamps to [0, total], snaps the board to that ply, and updates the HUD
+    // (grey overlay / LIVE pill). Shared by move-list clicks and arrow keys.
+    private void
+    SeekReview(int ply)
+    {
+        int total = mm.Data.MoveCount();
+        reviewPly = Mathf.Clamp(ply, 0, total);
+        mm.SeekToPly(reviewPly);
+        if (Hud != null)
+        {
+            Hud.SetReviewPly(reviewPly, total);
+            Hud.SetCurrentMove(reviewPly);
+        }
+    }
 
 
     private void
@@ -203,11 +224,7 @@ public class Arena : MonoBehaviour
             // Post-game review wiring.
             Hud.OnContinueClicked = () => continueRequested = true;
             Hud.OnReviewClicked   = () => reviewClicked    = true;
-            Hud.OnMoveLinkClicked = (ply) =>
-            {
-                mm.SeekToPly(ply);
-                Hud.SetReviewPly(ply, mm.Data.MoveCount());
-            };
+            Hud.OnMoveLinkClicked = (ply) => SeekReview(ply);
             Hud.OnOpenPgnClicked = () =>
             {
                 string games = Application.streamingAssetsPath + "/arena/Games/";
@@ -274,15 +291,31 @@ public class Arena : MonoBehaviour
 
                 if (reviewClicked)
                 {
+                    int totalPlies = mm.Data.MoveCount();
                     Hud.BeginReview();
-                    Hud.SetReviewPly(mm.Data.MoveCount(), mm.Data.MoveCount());
+                    // Start review on the final position with the last move
+                    // highlighted in the move list.
+                    SeekReview(totalPlies);
 
+                    // Wait for Continue, polling Left/Right arrows each frame
+                    // to step the reviewed position one ply at a time.
                     continueRequested = false;
-                    yield return new WaitUntil(() => continueRequested);
+                    while (!continueRequested)
+                    {
+                        var kb = Keyboard.current;
+                        if (kb != null)
+                        {
+                            if (kb.leftArrowKey.wasPressedThisFrame)
+                                SeekReview(reviewPly - 1);
+                            else if (kb.rightArrowKey.wasPressedThisFrame)
+                                SeekReview(reviewPly + 1);
+                        }
+                        yield return null;
+                    }
 
                     Hud.EndReview();
                     // Snap board back to final pos in case user scrubbed.
-                    mm.SeekToPly(mm.Data.MoveCount());
+                    mm.SeekToPly(totalPlies);
                 }
             }
             else
