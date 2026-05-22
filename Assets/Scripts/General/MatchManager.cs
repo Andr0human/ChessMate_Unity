@@ -13,9 +13,18 @@ public class MatchManager : MonoBehaviour
 
     [SerializeField] private GameObject EndScreen;
 
+    // Arena suppresses the shared EndScreen (result text + its Continue
+    // button) so the per-game result shows in ArenaHud's result card instead,
+    // freeing the left-of-board space for the eval bar.
+    [HideInInspector] public bool SuppressEndScreen = false;
+
     // Optional per-side eval display (used by the Arena scene; left unassigned
     // in Player-vs-AI). Index 0 = first player (white at game start), 1 = second.
     [SerializeField] private TMPro.TextMeshProUGUI[] PlayerEvalTexts = new TMPro.TextMeshProUGUI[2];
+
+    // Optional Arena HUD ref. When assigned, eval updates also drive the
+    // per-side eval-pill background colour and active-side card alpha.
+    [SerializeField] private ArenaHud arenaHud;
 
     private string[] PlayerNames = new string[2];
 
@@ -26,6 +35,11 @@ public class MatchManager : MonoBehaviour
     [HideInInspector] public int     Side2Move;
     [HideInInspector] public int      EndState;
     [HideInInspector] public int EndPrediction;
+
+    // Fired after each played move is applied to the board + Data.
+    // Arena subscribes to push the live move list to its HUD; single-player
+    // leaves it null.
+    public System.Action OnMoveMade;
 
     private float AdjournWinMargin = 5.0f;
 
@@ -80,7 +94,9 @@ public class MatchManager : MonoBehaviour
 
                 Side2Move ^= 1;
             }
-        }        
+
+            Data.BookMoveCount = opening_line.Count;
+        }
     }
 
 
@@ -260,6 +276,8 @@ public class MatchManager : MonoBehaviour
 
         UpdateEvalDisplay(Side2Move, eval);
 
+        OnMoveMade?.Invoke();
+
         // Board Update
         bh.BoardReset(false);
         bh.MarkPlayedMove(move);
@@ -299,6 +317,8 @@ public class MatchManager : MonoBehaviour
     private void
     GameOverScreen(int state)
     {
+        if (SuppressEndScreen) return;
+
         string res = "";
 
         if (state == 1) res = "White wins by checkmate!";
@@ -322,8 +342,7 @@ public class MatchManager : MonoBehaviour
         for (int i = 0; i < PlayerEvalTexts.Length; i++)
         {
             if (PlayerEvalTexts[i] == null) continue;
-            string name = (i < PlayerNames.Length) ? PlayerNames[i] : "";
-            PlayerEvalTexts[i].text = name + ": —";
+            PlayerEvalTexts[i].text = "—";
         }
     }
 
@@ -335,8 +354,40 @@ public class MatchManager : MonoBehaviour
         var tmp = PlayerEvalTexts[side];
         if (tmp == null) return;
 
-        string name = (side < PlayerNames.Length) ? PlayerNames[side] : "";
-        tmp.text = string.Format("{0}: {1:+0.00;-0.00; 0.00}", name, eval);
+        tmp.text = string.Format("{0:+0.00;-0.00; 0.00}", eval);
+
+        if (arenaHud != null)
+        {
+            // Side2Move still holds the just-moved side here; the next player is the opposite.
+            arenaHud.SetActiveSide(Side2Move ^ 1);
+        }
+    }
+
+
+    // Rebuilds the board visual to show the position after `ply` moves of the
+    // current game's MatchData have been applied. Used by Arena's post-game
+    // review (move-list click-to-seek). Does NOT mutate BoardPosition or any
+    // game state — purely a visual scrub.
+    public void
+    SeekToPly(int ply)
+    {
+        if (Data == null) return;
+
+        int total = Data.MoveCount();
+        ply = Mathf.Clamp(ply, 0, total);
+
+        ChessBoard tmp = new ChessBoard(Data.StartFen());
+        int lastMove = 0;
+        for (int i = 0; i < ply; i++)
+        {
+            int m = Data.MoveAt(i);
+            tmp.MakeMove(m);
+            lastMove = m;
+        }
+
+        bh.BoardReset(false);
+        if (lastMove != 0) bh.MarkPlayedMove(lastMove);
+        bh.Recreate(ref tmp);
     }
 
 

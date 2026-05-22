@@ -126,6 +126,8 @@ public class MatchData
     private List<ulong> occured_positions;
     private string start_pos_fen;
 
+    public int BookMoveCount { get; set; } = 0;
+
     bool first_move;
 
     public MatchData(string fen)
@@ -229,16 +231,82 @@ public class MatchData
     public string
     GetMoveList(MoveGenerator mg)
     {
-        string res = "";
+        var sb = new System.Text.StringBuilder();
         ChessBoard board = new ChessBoard(start_pos_fen);
 
-        foreach (var move in moves)
+        // Detect starting side + fullmove number from FEN so the move-pair
+        // layout works even from a non-standard start position.
+        string[] fenParts = start_pos_fen.Split(' ');
+        bool whiteFirst = fenParts.Length < 2 || fenParts[1] == "w";
+        int startFullMove = 1;
+        if (fenParts.Length >= 6) int.TryParse(fenParts[5], out startFullMove);
+        if (startFullMove < 1) startFullMove = 1;
+
+        int lastIdx = moves.Count - 1;
+        bool inBook = false;
+
+        for (int i = 0; i < moves.Count; i++)
         {
-            res += mg.PrintMove(move, board) + " ";
+            int move = moves[i];
+            bool isBook = i < BookMoveCount;
+            bool isLast = i == lastIdx;
+
+            bool isWhitePly  = whiteFirst ? (i % 2 == 0) : (i % 2 == 1);
+            int  fullMoveNo  = whiteFirst ? (startFullMove + i / 2)
+                                          : (startFullMove + (i + 1) / 2);
+            bool needsPrefix = isWhitePly || i == 0;
+
+            if (needsPrefix)
+            {
+                // Move-number prefix should never inherit the book color.
+                if (inBook) { sb.Append("</color>"); inBook = false; }
+                if (i > 0) sb.Append('\n');
+                // Right-pad number to width 3 so the white-move column is
+                // aligned even when game crosses move 10/100.
+                sb.Append("<mspace=0.55em>")
+                  .Append(fullMoveNo.ToString().PadLeft(3))
+                  .Append(isWhitePly ? "." : "...")
+                  .Append("</mspace> ");
+            }
+            else
+            {
+                // Tab to a fixed pixel column so black moves line up across rows.
+                sb.Append("<pos=55%>");
+            }
+
+            if (isBook && !inBook) { sb.Append("<color=#C9A227>"); inBook = true; }
+            else if (!isBook && inBook) { sb.Append("</color>"); inBook = false; }
+
+            // Link id = number of moves applied to reach the position AFTER this move.
+            // Click handler passes this directly into MatchManager.SeekToPly().
+            string token = "<link=\"" + (i + 1) + "\">" + mg.PrintMove(move, board) + "</link>";
+
+            if (isLast)
+            {
+                // Last-played move is always bold-white, even inside a book span.
+                // Briefly close + reopen the book color so the white shows through.
+                bool reopenBook = inBook;
+                if (reopenBook) sb.Append("</color>");
+                sb.Append("<b><color=#FFFFFF>").Append(token).Append("</color></b>");
+                if (reopenBook) sb.Append("<color=#C9A227>");
+            }
+            else
+            {
+                sb.Append(token);
+            }
+
+            sb.Append(' ');
             board.MakeMove(move);
         }
+        if (inBook) sb.Append("</color>");
 
-        return res;
+        return sb.ToString();
+    }
+
+    public int
+    MoveAt(int index)
+    {
+        return moves[index];
     }
 
     public string
@@ -263,10 +331,23 @@ public class MatchData
 }
 
 
-class ArenaScoreSheet
+public class ArenaScoreSheet
 {
     private string engine1;
     private string engine2;
+
+    public string Engine1Name => engine1;
+    public string Engine2Name => engine2;
+    public int    GamesPlayed => results.Count;
+    public int    Engine1Wins { get { int n = 0; foreach (var r in TallyByPair( 1)) n += r; return n; } }
+    public int    Engine2Wins { get { int n = 0; foreach (var r in TallyByPair(-1)) n += r; return n; } }
+    public int    Draws       { get { int n = 0; foreach (var r in results) if (r == 0) n++; return n; } }
+
+    private int[] TallyByPair(int win_value)
+    {
+        var (a, b) = CalculateWins(win_value);
+        return new int[] { a, b };
+    }
 
     private float time_per_game;
     private float time_increment;

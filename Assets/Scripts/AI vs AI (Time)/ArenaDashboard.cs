@@ -8,18 +8,16 @@ using UnityEngine.UI;
 public class ArenaDashboard : MonoBehaviour
 {
     [SerializeField] private Arena  ar;
-    [SerializeField] private Timer tmr;
+    [SerializeField] private GameObject SetupRoot;
 
-    public TextMeshProUGUI GameAmountField;
-    public TextMeshProUGUI TimeFormatField;
+    public TextMeshProUGUI RoundCountField;
+    public TextMeshProUGUI TimeControlField;
 
     private string[] EngineNames;
     private string[] openingFiles;
 
-    public TMP_Dropdown[] DropdownEngines;
-    public TMP_Dropdown   DropdownOpening;
-
-    [SerializeField] private GameObject[] ChessClocksText;
+    public TMP_Dropdown[] EngineDropdowns;
+    public TMP_Dropdown   OpeningDropdown;
 
 
     private void
@@ -41,9 +39,9 @@ public class ArenaDashboard : MonoBehaviour
         for (int i = 0; i < openingFiles.Length; i++)
             openingFiles[i] = Path.GetFileNameWithoutExtension(openingFilePaths[i]);
 
-        PopulateDropdown(DropdownEngines[0], EngineNames);
-        PopulateDropdown(DropdownEngines[1], EngineNames);
-        PopulateDropdown(DropdownOpening, openingFiles);
+        PopulateDropdown(EngineDropdowns[0], EngineNames);
+        PopulateDropdown(EngineDropdowns[1], EngineNames);
+        PopulateDropdown(OpeningDropdown, openingFiles);
 
         ar.ArenaEngines = new string[2];
     }
@@ -68,7 +66,7 @@ public class ArenaDashboard : MonoBehaviour
     public void
     SetSampleSize()
     {
-        string text = GameAmountField.text;
+        string text = RoundCountField.text;
         text = RemoveNonAlphaNumeric(text);
 
         if (text.Length == 0)
@@ -81,7 +79,7 @@ public class ArenaDashboard : MonoBehaviour
     public void
     SetTimeFormat()
     {
-        string[] values = TimeFormatField.text.Split();
+        string[] values = TimeControlField.text.Split();
         float time_per_side = 60, increment = 0;
 
         if (values.Length == 0)
@@ -101,25 +99,11 @@ public class ArenaDashboard : MonoBehaviour
     public void
     ArenaStartButton()
     {
-        GameObject.Find("BackBoard").SetActive(false);
-        GameObject.Find("Game Amount").SetActive(false);
-        GameObject.Find("Time Format").SetActive(false);
-        GameObject.Find("Openings File").SetActive(false);
-        GameObject.Find("Engine 1").SetActive(false);
-        GameObject.Find("Engine 2").SetActive(false);
-        GameObject.Find("Start Arena Button").SetActive(false);
+        SetupRoot.SetActive(false);
 
-        if (tmr.AllotedTimePerSide == 0f) {}
-            // tmr.enabled = false;
-        else
-        {
-            ChessClocksText[0].SetActive(true);
-            ChessClocksText[1].SetActive(true);
-        }
-
-        ar.ArenaEngines[0]  = EngineNames[DropdownEngines[0].value];
-        ar.ArenaEngines[1]  = EngineNames[DropdownEngines[1].value];
-        ar.OpeningsFilePath = openingFiles[DropdownOpening.value];
+        ar.ArenaEngines[0]  = EngineNames[EngineDropdowns[0].value];
+        ar.ArenaEngines[1]  = EngineNames[EngineDropdowns[1].value];
+        ar.OpeningsFilePath = openingFiles[OpeningDropdown.value];
 
         ar.InitArena();
     }
