@@ -9443,7 +9443,7 @@ MonoBehaviour:
   IncrementPerGame: 1
   fixedTimePerMove: 0
   Hud: {fileID: 2065896278}
-  ReviewCountdownSeconds: 30
+  ReviewCountdownSeconds: 2
   ArenaEngines: []
   OpeningsFilePath: 
 --- !u!114 &1554426744
@@ -12917,6 +12917,7 @@ MonoBehaviour:
   ClockIconSpinSpeed: 90
   MoveListText: {fileID: 1734356282}
   AnomalyText: {fileID: 392431830}
+  ReviewMoveHighlight: {r: 0.96, g: 0.82, b: 0.25, a: 0.3}
   UICamera: {fileID: 519420031}
   ReviewButton: {fileID: 56053390}
   ReviewButtonLabel: {fileID: 708041974}
