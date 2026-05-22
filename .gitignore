@@ -10,6 +10,9 @@
 /[Ll]ogs/
 /[Mm]emoryCaptures/
 
+# Per-developer editor state (window layouts, search index, etc.)
+/[Uu]serSettings/
+
 # Never ignore Asset meta data
 !/[Aa]ssets/**/*.meta
 
