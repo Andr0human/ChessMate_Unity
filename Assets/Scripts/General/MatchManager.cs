@@ -32,9 +32,9 @@ public class MatchManager : MonoBehaviour
     [HideInInspector] public  MatchData Data;
     [HideInInspector] public  IPlayer[] Players;
 
-    [HideInInspector] public int     Side2Move;
-    [HideInInspector] public int      EndState;
-    [HideInInspector] public int EndPrediction;
+    [HideInInspector] public int          Side2Move;
+    [HideInInspector] public GameEndState  EndState;
+    [HideInInspector] public int      EndPrediction;
 
     // Fired after each played move is applied to the board + Data.
     // Arena subscribes to push the live move list to its HUD; single-player
@@ -100,29 +100,33 @@ public class MatchManager : MonoBehaviour
     }
 
 
-    public int
+    public GameEndState
     IsGameOver()
     {
-        // Refer to GameOverScreen() for various-states.
-
         MoveList moveslist = mg.GenerateMoves(ref BoardPosition);
 
-        // checkmate/stalemate check
+        // checkmate/stalemate check — the side to move has no legal reply.
         if (moveslist.moveCount == 0)
-            return (moveslist.KingAttackers > 0) ? 1 + (Side2Move ^ 1) : 3;
+        {
+            if (moveslist.KingAttackers == 0)
+                return GameEndState.DrawByStalemate;
+            return (Side2Move == 0) ? GameEndState.BlackWinsByCheckmate
+                                    : GameEndState.WhiteWinsByCheckmate;
+        }
 
         // Insufficient material check
-        if (InsufficientMaterial(ref BoardPosition)) return 4;
+        if (InsufficientMaterial(ref BoardPosition)) return GameEndState.DrawByInsufficientMaterial;
 
         // 3-fold repetition and 50-move-rule
-        if (Data.ThreeMoveRepetitionDraw()) return 5;
-        if (Data.FiftyMoveRuleDraw()) return 6;
+        if (Data.ThreeMoveRepetitionDraw()) return GameEndState.DrawByRepetition;
+        if (Data.FiftyMoveRuleDraw()) return GameEndState.DrawByFiftyMoveRule;
 
         // Check if lost on time
         if (tmr.ChessClocks[Side2Move] < 0f)
-            return 7 + (Side2Move ^ 1);
+            return (Side2Move == 0) ? GameEndState.BlackWinsOnTime
+                                    : GameEndState.WhiteWinsOnTime;
 
-        return -1;
+        return GameEndState.Ongoing;
     }
 
 
@@ -196,7 +200,7 @@ public class MatchManager : MonoBehaviour
         Data = new MatchData(startFen);
 
         // Reset Match Parameters
-        EndState = -1;
+        EndState = GameEndState.Ongoing;
         EndPrediction = 0;
 
         EndScreen.SetActive(false);
@@ -233,7 +237,7 @@ public class MatchManager : MonoBehaviour
     private IEnumerator
     PlayGame()
     {
-        while ((EndState = IsGameOver()) == -1)
+        while ((EndState = IsGameOver()) == GameEndState.Ongoing)
         {
             // Let player make his move
             yield return StartCoroutine( RequestMove() ) ;
@@ -308,29 +312,19 @@ public class MatchManager : MonoBehaviour
         });
 
         if (!timeLeftForSearch) {
-            EndState = 7 + (Side2Move ^ 1);
+            EndState = (Side2Move == 0) ? GameEndState.BlackWinsOnTime
+                                        : GameEndState.WhiteWinsOnTime;
             Players[Side2Move].StopReadOutput();
         }
     }
 
 
     private void
-    GameOverScreen(int state)
+    GameOverScreen(GameEndState state)
     {
         if (SuppressEndScreen) return;
 
-        string res = "";
-
-        if (state == 1) res = "White wins by checkmate!";
-        else if (state == 2) res = "Black wins by checkmate!";
-        else if (state == 3) res = "Draw by stalemate!";
-        else if (state == 4) res = "Draw by insufficient material!";
-        else if (state == 5) res = "Draw by 3-fold repetition!";
-        else if (state == 6) res = "Draw by 50-move rule!";
-        else if (state == 7) res = "White wins on time!";
-        else if (state == 8) res = "Black wins on time!";
-
-        EndScreen.GetComponent<TMPro.TextMeshProUGUI>().text = res;
+        EndScreen.GetComponent<TMPro.TextMeshProUGUI>().text = state.Describe() + "!";
         EndScreen.SetActive(true);
     }
 

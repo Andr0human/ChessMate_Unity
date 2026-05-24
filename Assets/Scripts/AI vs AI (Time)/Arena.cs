@@ -76,7 +76,7 @@ public class Arena : MonoBehaviour
 
 
     private string
-    GameRemark(int result, int state, int prediction)
+    GameRemark(int result, GameEndState state, int prediction)
     {
         string remark = "";
 
@@ -93,10 +93,10 @@ public class Arena : MonoBehaviour
         if (mm.BoardPosition.PositionWeight() > weight_cutoff)
             remark += "huge material | ";
 
-        if (state == 5)
+        if (state == GameEndState.DrawByRepetition)
             remark += "draw by 3-move repetition | ";
 
-        if ((state == 7) || (state == 8))
+        if ((state == GameEndState.WhiteWinsOnTime) || (state == GameEndState.BlackWinsOnTime))
             remark += "lost on time | ";
 
         if (remark.Length > 0)
@@ -107,13 +107,13 @@ public class Arena : MonoBehaviour
 
 
     private int
-    GetResultFromState(int state, int prediction)
+    GetResultFromState(GameEndState state, int prediction)
     {
         // Game ended normally (one side wins)
-        if (state == 1 || state == 7) return  1;
-        if (state == 2 || state == 8) return -1;
-        
-        // Game ends in a draws
+        if (state == GameEndState.WhiteWinsByCheckmate || state == GameEndState.WhiteWinsOnTime) return  1;
+        if (state == GameEndState.BlackWinsByCheckmate || state == GameEndState.BlackWinsOnTime) return -1;
+
+        // Game ends in a draw
         return 0;
     }
 
@@ -136,7 +136,7 @@ public class Arena : MonoBehaviour
 
 
     private (int result, string remark)
-    UpdateArenaElements(int s2s, int end_state, int prediction)
+    UpdateArenaElements(int s2s, GameEndState end_state, int prediction)
     {
         int end_result = GetResultFromState(end_state, prediction);
         string remark  = GameRemark(end_result, end_state, prediction);
@@ -171,24 +171,6 @@ public class Arena : MonoBehaviour
         }
 
         return (end_result, remark);
-    }
-
-
-    private static string
-    StateLabel(int state)
-    {
-        switch (state)
-        {
-            case 1: return "White wins by checkmate";
-            case 2: return "Black wins by checkmate";
-            case 3: return "Draw by stalemate";
-            case 4: return "Draw by insufficient material";
-            case 5: return "Draw by 3-fold repetition";
-            case 6: return "Draw by 50-move rule";
-            case 7: return "White wins on time";
-            case 8: return "Black wins on time";
-            default: return "Game over";
-        }
     }
 
 
@@ -275,7 +257,7 @@ public class Arena : MonoBehaviour
             // runs zero-friction.
             if (Hud != null && Hud.ReviewSupported)
             {
-                Hud.ShowGameResult(StateLabel(mm.EndState), remark);
+                Hud.ShowGameResult(mm.EndState.Describe(), remark);
 
                 reviewClicked = false;
                 float remaining = ReviewCountdownSeconds;

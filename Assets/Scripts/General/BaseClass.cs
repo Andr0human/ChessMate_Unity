@@ -382,7 +382,7 @@ public class ArenaScoreSheet
 
 
     public void
-    Add(int result, int prediction, int state)
+    Add(int result, int prediction, GameEndState state)
     {
         results.Add(result);
 
@@ -395,16 +395,16 @@ public class ArenaScoreSheet
 
         if (results.Count % 2 == 1)
         {
-            if (state == 7)
+            if (state == GameEndState.WhiteWinsOnTime)
                 engine2_loss_on_time++;
-            if (state == 8)
+            if (state == GameEndState.BlackWinsOnTime)
                 engine1_loss_on_time++;
         }
         else
         {
-            if (state == 7)
+            if (state == GameEndState.WhiteWinsOnTime)
                 engine1_loss_on_time++;
-            if (state == 8)
+            if (state == GameEndState.BlackWinsOnTime)
                 engine2_loss_on_time++;
         }
     }
