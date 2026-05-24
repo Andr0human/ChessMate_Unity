@@ -141,33 +141,6 @@ public class ChessEngine : IPlayer
     }
 
 
-    private static (float, float)
-    GetAvailableTime(ref ChessBoard __pos)
-    {
-        int __side = __pos.color ^ 1;
-        return (tmr.ChessClocks[__side], tmr.IncrementTime);
-    }
-
-
-    private static float
-    DecideTimeForSearch(ref ChessBoard __pos)
-    {
-        var (time_left, increment) = GetAvailableTime(ref __pos);
-
-        float max_moves = 32;
-        float max_weight = 7880f;
-        float current_weight = __pos.PositionWeight();
-
-        float moves_to_go = max_moves -
-            (((max_weight - current_weight) / 400f) * 1.3f);
-
-        float search_time = ((time_left + increment) / moves_to_go) + (0.6f * increment);
-
-        search_time = Mathf.Min(search_time, 0.62f * time_left);
-        return search_time;
-    }
-
-
     public IEnumerator
     Play(ChessBoard position, int last_move)
     {
@@ -206,11 +179,26 @@ public class ChessEngine : IPlayer
             yield break;
         }
 
-        float search_time = FixedMoveTime ? 0.5f : DecideTimeForSearch(ref position);
-        int movetime_ms = Mathf.Max(1, Mathf.RoundToInt(search_time * 1000f));
+        SendPosition(AnchorFen, UciHistory);
 
-        SendPosition(AnchorFen, UciHistory, movetime_ms);
-        SendLine("go movetime " + movetime_ms);
+        if (FixedMoveTime)
+        {
+            // Flat per-move budget (Arena's fixedTimePerMove). The engine's
+            // movetime path is unchanged.
+            SendLine("go movetime 500");
+        }
+        else
+        {
+            // Forward the raw clock and let the engine decide its own search
+            // time (UCI-correct split). ChessClocks[0] = white, [1] = black;
+            // clocks can dip briefly negative, so clamp each to >= 1 ms.
+            int wtime = Mathf.Max(1, Mathf.RoundToInt(tmr.ChessClocks[0] * 1000f));
+            int btime = Mathf.Max(1, Mathf.RoundToInt(tmr.ChessClocks[1] * 1000f));
+            int inc   = Mathf.Max(0, Mathf.RoundToInt(tmr.IncrementTime    * 1000f));
+
+            SendLine("go wtime " + wtime + " btime " + btime
+                + " winc " + inc + " binc " + inc);
+        }
 
         yield return new WaitUntil( ReadOutput );
 
@@ -221,15 +209,13 @@ public class ChessEngine : IPlayer
 
 
     private void
-    SendPosition(string fen, List<string> moves, int movetime_ms)
+    SendPosition(string fen, List<string> moves)
     {
         string cmd = "position fen " + fen;
         if (moves.Count > 0)
             cmd += " moves " + string.Join(" ", moves);
 
-        // UnityEngine.Debug.Log(string.Format(
-        //     "[{0}] -> {1}\n[{0}] -> go movetime {2}",
-        //     EngineName, cmd, movetime_ms));
+        // UnityEngine.Debug.Log(string.Format("[{0}] -> {1}", EngineName, cmd));
 
         SendLine(cmd);
     }
