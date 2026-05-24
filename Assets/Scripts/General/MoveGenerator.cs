@@ -17,19 +17,6 @@ public class MoveGenerator : MonoBehaviour
         return color_bit | (fpt << 15) | (ipt << 12) | (fp << 6) | ip;
     }
 
-    public string
-    DecodeMove(int move)
-    {
-        int ip = move & 63;
-        int fp = (move >> 6) & 63;
-        int pt  = (move >> 12) & 7;
-        int cpt = (move >> 15) & 7;
-        int cl  = (move >> 20) & 1;
-
-        return "ip => " + ip.ToString() + " fp => " + fp.ToString()
-            + " pt => " + pt.ToString() + " cpt => " + cpt.ToString();
-    }
-
     private bool
     IsLegalMove(ChessBoard pos, int move)
     {

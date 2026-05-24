@@ -1,7 +1,5 @@
 using UnityEngine;
 using System.IO;
-using System.Diagnostics;
-using System.Collections;
 using System.Collections.Generic;
 
 public class OpeningBook : MonoBehaviour

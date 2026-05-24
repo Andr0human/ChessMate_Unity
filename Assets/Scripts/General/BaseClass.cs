@@ -62,17 +62,6 @@ public class MoveList
     }
 
     public void
-    Add(int idx, ulong val)
-    {
-        if (val != 0)
-        {
-            startIndex |= 1UL << (idx);
-            endIndex[idx] |= val;
-            moveCount++;
-        }
-    }
-
-    public void
     Clear()
     {
         startIndex = 0;
@@ -309,17 +298,6 @@ public class MatchData
         return moves[index];
     }
 
-    public string
-    GetMovesEval()
-    {
-        string res = "";
-
-        foreach (var eval in evals)
-            res += eval.ToString() + " ";
-
-        return res;
-    }
-
     public int
     MoveCount()
     {
@@ -495,31 +473,6 @@ public class ArenaScoreSheet
           + "[Black \""  + black  + "\"]\n"
           + "[Result \"" + result_string + "\"]\n"
           + "[FEN \""    + fen + "\"]\n\n";
-    }
-
-
-    public string
-    GenerateCsvLine(int game_no, int result, int movecount, string remark)
-    {
-        string csv_line = "";
-        csv_line = game_no.ToString() + ", ";
-
-        if (result == 1)
-            csv_line += "1-0, ";
-        else if (result == -1)
-            csv_line += "0-1, ";
-        else
-            csv_line += "1/2-1/2, ";
-
-        string white = game_no % 2 == 1 ? engine1 : engine2;
-        string black = game_no % 2 == 0 ? engine1 : engine2;
-
-        csv_line += white + ", " + black + ", ";
-
-        int m = (movecount + 1) / 2;
-        csv_line += m.ToString() + ", " + remark;
-
-        return csv_line;
     }
 
 

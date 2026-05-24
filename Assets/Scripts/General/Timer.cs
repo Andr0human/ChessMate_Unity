@@ -65,13 +65,6 @@ public class Timer : MonoBehaviour
     }
 
     public void
-    ClockReset(int color)
-    {
-        ChessClocks[0] = ChessClocks[1] = AllotedTimePerSide;
-        Side2Tick = 2;
-    }
-
-    public void
     SwitchPlayer()
     {
         if (Side2Tick < 2)

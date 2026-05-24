@@ -107,7 +107,7 @@ public class Arena : MonoBehaviour
 
 
     private int
-    GetResultFromState(GameEndState state, int prediction)
+    GetResultFromState(GameEndState state)
     {
         // Game ended normally (one side wins)
         if (state == GameEndState.WhiteWinsByCheckmate || state == GameEndState.WhiteWinsOnTime) return  1;
@@ -138,7 +138,7 @@ public class Arena : MonoBehaviour
     private (int result, string remark)
     UpdateArenaElements(int s2s, GameEndState end_state, int prediction)
     {
-        int end_result = GetResultFromState(end_state, prediction);
+        int end_result = GetResultFromState(end_state);
         string remark  = GameRemark(end_result, end_state, prediction);
 
         if (!string.IsNullOrEmpty(remark)) anomalyCount++;

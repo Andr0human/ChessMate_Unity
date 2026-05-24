@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using System.Diagnostics;
 using System.Collections.Generic;
 
 
@@ -44,7 +43,6 @@ public class MatchManager : MonoBehaviour
     private float AdjournWinMargin = 5.0f;
 
     private string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    private int    gameNo = 1;
 
 
     private void
@@ -226,7 +224,6 @@ public class MatchManager : MonoBehaviour
                       : new ChessEngine(playerBlack, fixedTimePerMove, allowOpeningBook, blackLog);
 
         yield return new WaitForSeconds(1);
-        gameNo++;
 
         // Initialize timer and start the game
         tmr.Init(Side2Move);

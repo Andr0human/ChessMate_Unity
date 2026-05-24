@@ -161,19 +161,12 @@ public class ChessEngine : IPlayer
             UciHistory.Add(MoveCodec.EncodeToUci(last_move));
         }
 
-        // string currentFen = position.Fen();
-        // UnityEngine.Debug.Log(string.Format(
-        //     "[{0}] turn — fen={1} last_move={2}",
-        //     EngineName, currentFen,
-        //     (last_move != 0) ? MoveCodec.EncodeToUci(last_move) : "-"));
-
         // Play Book Move if possible
         bool bookAvailable = (ob != null) && (ob.Book != null) && (ob.Book.Count > 0);
         if (AllowOpeningBook && bookAvailable && ob.PositionInOpeningBook(ref position))
         {
             int bookMove = ob.PlayBookMove(ref position);
             EngineEval = 0;
-            // UnityEngine.Debug.Log("[" + EngineName + "] book move: " + MoveCodec.EncodeToUci(bookMove));
             EngineMove = bookMove;
             UciHistory.Add(MoveCodec.EncodeToUci(bookMove));
             yield break;
@@ -215,8 +208,6 @@ public class ChessEngine : IPlayer
         if (moves.Count > 0)
             cmd += " moves " + string.Join(" ", moves);
 
-        // UnityEngine.Debug.Log(string.Format("[{0}] -> {1}", EngineName, cmd));
-
         SendLine(cmd);
     }
 
@@ -229,8 +220,6 @@ public class ChessEngine : IPlayer
 
         while (EngineOutput.TryDequeue(out string line))
         {
-            // UnityEngine.Debug.Log("[" + EngineName + "] <- " + line);
-
             if (line.StartsWith("info "))
             {
                 ParseInfoScore(line);
@@ -254,10 +243,6 @@ public class ChessEngine : IPlayer
             {
                 int packed = MoveCodec.DecodeFromUci(uci, ref CurrentPosition);
                 EngineMove = packed;
-
-                // UnityEngine.Debug.Log(string.Format(
-                //     "[{0}] bestmove uci={1} packed=0x{2:X} from_fen={3}",
-                //     EngineName, uci, packed, CurrentPosition.Fen()));
             }
             return true;
         }

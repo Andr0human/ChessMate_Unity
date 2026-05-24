@@ -71,9 +71,7 @@ public class DashBoard : MonoBehaviour
         if (BookMissingBanner != null)
             BookMissingBanner.SetActive(false);
 
-        if (TimeOption == 0) {}
-            // tmr.enabled = false;
-        else
+        if (TimeOption != 0)
         {
             tmr.SetTime(FixedTime, IncTime);
 
