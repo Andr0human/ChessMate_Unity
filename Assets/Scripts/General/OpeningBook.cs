@@ -20,26 +20,6 @@ public class OpeningBook : MonoBehaviour
         GetOpeningBook();
     }
 
-    private int
-    UciToEncodeMove(string uci_move, ref ChessBoard pos)
-    {
-        // Opening Book does not have promotions, so need to code for it
-        int Index(char row, char col) => (int)(row - 'a') + (int)(col - '1') * 8;
-
-        int ip = Index(uci_move[0], uci_move[1]);
-        int fp = Index(uci_move[2], uci_move[3]);
-
-        int ipt = pos.board[ip] & 7;
-        int fpt = pos.board[fp] & 7;
-
-        int  pos_bits = (fp << 6) | ip;
-        int type_bits = (fpt << 15) | (ipt << 12);
-        int color_bit = pos.color << 20;
-
-        return pos_bits | type_bits | color_bit;
-    }
-
-
     public bool
     IsFen(string opening)
     {
@@ -58,7 +38,7 @@ public class OpeningBook : MonoBehaviour
 
         foreach (string move in moves)
         {
-            int e_move = UciToEncodeMove(move, ref board);
+            int e_move = MoveCodec.DecodeFromUci(move, ref board);
             encoded_line.Add(e_move);
             board.MakeMove(e_move);
         }
@@ -108,7 +88,7 @@ public class OpeningBook : MonoBehaviour
                 if (!Book.ContainsKey(key))
                     Book[key] = new List<int>();
 
-                int e_move = UciToEncodeMove(move, ref position);
+                int e_move = MoveCodec.DecodeFromUci(move, ref position);
 
                 if (Book[key].Contains(e_move) == false)
                     Book[key].Add(e_move);

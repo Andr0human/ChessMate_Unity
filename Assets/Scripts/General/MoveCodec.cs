@@ -14,6 +14,23 @@ public static class MoveCodec
 {
     private const ulong Rank18 = 0xFF000000000000FFUL;
 
+    // Packs a move from board square indices, reading moving/captured piece
+    // type and color from the current position. promo is the promotion piece
+    // (0=B, 1=N, 2=R, 3=Q); leave at 0 for non-promotions. Single source of
+    // truth for the packed-int layout — every encoder routes through here.
+    public static int Encode(ref ChessBoard pos, int ip, int fp, int promo = 0)
+    {
+        int ipt = pos.board[ip] & 7;
+        int fpt = pos.board[fp] & 7;
+
+        int posBits   = (fp << 6) | ip;
+        int typeBits  = (fpt << 15) | (ipt << 12);
+        int colorBit  = pos.color << 20;
+        int promoBits = promo << 18;
+
+        return promoBits | colorBit | typeBits | posBits;
+    }
+
     public static string EncodeToUci(int packedMove)
     {
         if (packedMove == 0) return "0000";
@@ -53,28 +70,19 @@ public static class MoveCodec
         int ip = (uci[0] - 'a') + (uci[1] - '1') * 8;
         int fp = (uci[2] - 'a') + (uci[3] - '1') * 8;
 
-        int ipt = pos.board[ip] & 7;
-        int fpt = pos.board[fp] & 7;
-
-        int posBits   = (fp << 6) | ip;
-        int typeBits  = (fpt << 15) | (ipt << 12);
-        int colorBit  = pos.color << 20;
-
-        int promoBits = 0;
+        int promo = 0;
         if (uci.Length >= 5)
         {
-            int ppt;
             switch (uci[4])
             {
-                case 'b': ppt = 0; break;
-                case 'n': ppt = 1; break;
-                case 'r': ppt = 2; break;
-                case 'q': ppt = 3; break;
-                default:  ppt = 3; break;
+                case 'b': promo = 0; break;
+                case 'n': promo = 1; break;
+                case 'r': promo = 2; break;
+                case 'q': promo = 3; break;
+                default:  promo = 3; break;
             }
-            promoBits = ppt << 18;
         }
 
-        return promoBits | colorBit | typeBits | posBits;
+        return Encode(ref pos, ip, fp, promo);
     }
 }

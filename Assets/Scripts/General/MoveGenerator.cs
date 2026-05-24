@@ -7,16 +7,6 @@ public class MoveGenerator : MonoBehaviour
 
     #region UTILS
 
-    private int
-    EncodeMove(ref ChessBoard pos, int ip, int fp)
-    {
-        int ipt = pos.board[ip] & 7;
-        int fpt = pos.board[fp] & 7;
-        int color_bit = pos.color << 20;
-
-        return color_bit | (fpt << 15) | (ipt << 12) | (fp << 6) | ip;
-    }
-
     private bool
     IsLegalMove(ChessBoard pos, int move)
     {
@@ -72,7 +62,7 @@ public class MoveGenerator : MonoBehaviour
         while (endSquares != 0)
         {
             int fp = pos.LsbIdx(endSquares);
-            int move = EncodeMove(ref pos, ip, fp);
+            int move = MoveCodec.Encode(ref pos, ip, fp);
             endSquares &= endSquares - 1;
 
             if (((ip_bit & pinned_squares) != 0) && !IsLegalMove(pos, move))

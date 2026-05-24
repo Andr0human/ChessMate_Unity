@@ -348,28 +348,6 @@ public class HumanPlayer : IPlayer
     }
 
 
-    private int
-    GenerateEncodeMoveForUser()
-    {
-        int color = BoardPosition.color;
-
-        int init_index = ui.InitSquare;
-        int dest_index = ui.DestSquare;
-
-        int          piece = BoardPosition.board[init_index] & 7;
-        int captured_piece = BoardPosition.board[dest_index] & 7;
-        int promoted_piece = ui.PromotedPiece;
-
-        int       pos_bits = (dest_index << 6) | init_index;
-        int      type_bits = (captured_piece << 15) | (piece << 12);
-        int      color_bit = color << 20;
-        int promotion_bits = promoted_piece << 18;
-
-        int move = promotion_bits | color_bit | type_bits | pos_bits;
-        return move;
-    }
-
-
     public (int, float)
     GetResults()
     { return (HumanMove, HumanEval); }
@@ -387,7 +365,8 @@ public class HumanPlayer : IPlayer
         ui.GetSquares(ref movelist);
         yield return new WaitUntil(() => (ui.InitSquare != -1) && (ui.DestSquare != -1));
 
-        HumanMove = GenerateEncodeMoveForUser();
+        HumanMove = MoveCodec.Encode(
+            ref BoardPosition, ui.InitSquare, ui.DestSquare, ui.PromotedPiece);
         HumanEval = 0;
     }
 
