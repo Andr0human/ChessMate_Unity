@@ -8,7 +8,7 @@ public class ChessBoard
     public ulong[]   pieces;
     private  int[] bitIndex;
 
-    // csep -> castling states + en_passant squares
+    // csep -> castling states + en-passant squares
     public int color, csep;
     public int halfmove, fullmove;
 
@@ -94,10 +94,10 @@ public class ChessBoard
                 square -= (square & 7) != 0 ? ((square & 7) + 8) : (16);
             else
             {
-                int __x  = CharToPieceType(ch);
-                board[square] = __x;
-                pieces[__x] |= 1UL << square;
-                pieces[(__x & 8) + 7] |= 1UL << square;
+                int piece = CharToPieceType(ch);
+                board[square] = piece;
+                pieces[piece] |= 1UL << square;
+                pieces[(piece & 8) + 7] |= 1UL << square;
                 square++;
             }
         }
@@ -124,7 +124,7 @@ public class ChessBoard
     public string
     Fen()
     {
-        string generated_fen = "";
+        string generatedFen = "";
         int zeros = 0;
 
         for (int square = 56; square >= 0; square++)
@@ -133,43 +133,43 @@ public class ChessBoard
                 zeros++;
             else
             {
-                if (zeros != 0) generated_fen += zeros.ToString();
+                if (zeros != 0) generatedFen += zeros.ToString();
                 
                 zeros = 0;
-                generated_fen += PieceToChar(board[square]);
+                generatedFen += PieceToChar(board[square]);
             }
 
             if ((square & 7) == 7)
             {
-                if (zeros != 0) generated_fen += zeros.ToString();
+                if (zeros != 0) generatedFen += zeros.ToString();
                 
                 zeros = 0;
-                generated_fen += '/';
+                generatedFen += '/';
                 square -= 16;
             }
         }
 
-        generated_fen = generated_fen.Substring(0, generated_fen.Length - 1) + ' ';
-        generated_fen += (color == 1) ? "w " : "b ";
+        generatedFen = generatedFen.Substring(0, generatedFen.Length - 1) + ' ';
+        generatedFen += (color == 1) ? "w " : "b ";
 
-        if ((csep & 1024) != 0) generated_fen += "K";
-        if ((csep &  512) != 0) generated_fen += "Q";
-        if ((csep &  256) != 0) generated_fen += "k";
-        if ((csep &  128) != 0) generated_fen += "q";
-        if ((csep & 1920) == 0) generated_fen += "-";
+        if ((csep & 1024) != 0) generatedFen += "K";
+        if ((csep &  512) != 0) generatedFen += "Q";
+        if ((csep &  256) != 0) generatedFen += "k";
+        if ((csep &  128) != 0) generatedFen += "q";
+        if ((csep & 1920) == 0) generatedFen += "-";
 
-        generated_fen += ' ';
+        generatedFen += ' ';
 
         if ((csep & 64) != 0)
-            generated_fen += "- ";
+            generatedFen += "- ";
         else
         {
-            generated_fen += (char)((csep & 7) + 'a');
-            generated_fen += (color == 1) ? "6 " : "3 ";
+            generatedFen += (char)((csep & 7) + 'a');
+            generatedFen += (color == 1) ? "6 " : "3 ";
         }
 
-        generated_fen += halfmove.ToString() + " " + fullmove.ToString();
-        return generated_fen;
+        generatedFen += halfmove.ToString() + " " + fullmove.ToString();
+        return generatedFen;
     }
 
     public ulong
@@ -201,49 +201,49 @@ public class ChessBoard
     #region Utils
 
     public ulong
-    Lsb(ulong __x)
+    Lsb(ulong x)
     {
-        return __x & ~(__x - 1);
+        return x & ~(x - 1);
     }
 
     public ulong
-    Msb(ulong __x)
+    Msb(ulong x)
     {
-        ulong tmp = __x;
-        while (__x != 0) {
-            tmp = __x;
-            __x &= __x - 1;
+        ulong tmp = x;
+        while (x != 0) {
+            tmp = x;
+            x &= x - 1;
         }
         return tmp;
     }
 
     public int
-    LsbIdx(ulong __x)
+    LsbIdx(ulong x)
     {
-        return (__x != 0) ? IndexNo(Lsb(__x)) : 63;
+        return (x != 0) ? IndexNo(Lsb(x)) : 63;
     }
 
     public int
-    MsbIdx(ulong __x)
+    MsbIdx(ulong x)
     {
-        return (__x != 0) ? IndexNo(Msb(__x)) : 0;
+        return (x != 0) ? IndexNo(Msb(x)) : 0;
     }
 
     public int
-    PopCount(ulong __x)
+    PopCount(ulong x)
     {
         int ones = 0;
-        while (__x != 0) {
-            __x &= __x - 1;
+        while (x != 0) {
+            x &= x - 1;
             ones++;
         }
         return ones;
     }
 
     public int
-    IndexNo(ulong __x)
+    IndexNo(ulong x)
     {
-        return bitIndex[(__x * Bitboards.DeBruijn64) >> 57];
+        return bitIndex[(x * Bitboards.DeBruijn64) >> 57];
     }
 
     public int
@@ -318,18 +318,18 @@ public class ChessBoard
             // En-passant move
             if (fp == ep)
             {
-                int cap_pawn_fp = ep - 8 * (2 * color - 1);
+                int capPawnFp = ep - 8 * (2 * color - 1);
 
                 // Remove opp. pawn from the board
-                pieces[emy + 1] ^= 1UL << cap_pawn_fp;
-                pieces[emy + 7] ^= 1UL << cap_pawn_fp;
-                board[cap_pawn_fp] = 0;
+                pieces[emy + 1] ^= 1UL << capPawnFp;
+                pieces[emy + 7] ^= 1UL << capPawnFp;
+                board[capPawnFp] = 0;
 
                 // Update own pawn in pieces-table
                 pieces[own + 1] ^= ipos ^ fpos;
                 pieces[own + 7] ^= ipos ^ fpos;
 
-                hashvalue ^= TT.HashUpdate(emy + 1, cap_pawn_fp) ^ TT.HashIndex[0];
+                hashvalue ^= TT.HashUpdate(emy + 1, capPawnFp) ^ TT.HashIndex[0];
                 hashvalue ^= TT.HashUpdate(own + 1, ip) ^ TT.HashUpdate(own + 1, ep);
 
                 color ^= 1;
@@ -339,12 +339,12 @@ public class ChessBoard
             // Promotion
             if ((fpos & Bitboards.Rank18) != 0)
             {
-                int new_pt = ((move >> 18) & 3) + 2;
+                int newPt = ((move >> 18) & 3) + 2;
 
                 pieces[own + 1] ^= ipos;
-                pieces[own + new_pt] ^= fpos;
+                pieces[own + newPt] ^= fpos;
                 pieces[own + 7] ^= ipos ^ fpos;
-                board[fp] = own + new_pt;
+                board[fp] = own + newPt;
 
                 if (fpt > 0)
                 {
@@ -356,7 +356,7 @@ public class ChessBoard
 
                 hashvalue ^= TT.HashIndex[0]
                            ^ TT.HashUpdate(own + 1, ip)
-                           ^ TT.HashUpdate(own + new_pt, fp);
+                           ^ TT.HashUpdate(own + newPt, fp);
 
                 color ^= 1;
                 return;
@@ -366,11 +366,11 @@ public class ChessBoard
         // Check king moves
         if ((ipt & 7) == 6)
         {
-            int old_csep = csep;
+            int oldCsep = csep;
             int filter = 2047 ^ (384 << (color * 2));
             csep &= filter;
 
-            hashvalue ^= TT.HashIndex[(old_csep >> 7) + TT.CastleBase];
+            hashvalue ^= TT.HashIndex[(oldCsep >> 7) + TT.CastleBase];
             hashvalue ^= TT.HashIndex[(csep >> 7) + TT.CastleBase];
 
             // Castling
@@ -435,10 +435,10 @@ public class ChessBoard
         {
             if (fp == ep)
             {
-                int pawn_fp = ep - 8 * (2 * color - 1);
-                pieces[emy + 1] ^= 1UL << pawn_fp;
-                pieces[emy + 7] ^= 1UL << pawn_fp;
-                board[pawn_fp] = emy + 1;
+                int pawnFp = ep - 8 * (2 * color - 1);
+                pieces[emy + 1] ^= 1UL << pawnFp;
+                pieces[emy + 7] ^= 1UL << pawnFp;
+                board[pawnFp] = emy + 1;
             }
             else if ((fpos & Bitboards.Rank18) != 0)
             {
@@ -459,11 +459,11 @@ public class ChessBoard
     {
         int own = Own();
 
-        ulong rooks_indexes =
+        ulong rooksIndexes =
             (fp > ip ? 160UL : 9UL) << (56 * (color ^ 1));
 
-        pieces[own + 4] ^= rooks_indexes;
-        pieces[own + 7] ^= rooks_indexes;
+        pieces[own + 4] ^= rooksIndexes;
+        pieces[own + 7] ^= rooksIndexes;
 
         int flask = (MakeMoveCall ^ 1) * (own + 4);
 
@@ -484,10 +484,10 @@ public class ChessBoard
             pieces[own + 7] ^= (1UL << ip) ^ (1UL << fp);
             color ^= 1;
 
-            int __p1 = LsbIdx(rooks_indexes);
-            int __p2 = MsbIdx(rooks_indexes);
-            hashvalue ^= TT.HashUpdate(own + 6,   ip) ^ TT.HashUpdate(own + 6,   fp);
-            hashvalue ^= TT.HashUpdate(own + 4, __p1) ^ TT.HashUpdate(own + 4, __p2);
+            int p1 = LsbIdx(rooksIndexes);
+            int p2 = MsbIdx(rooksIndexes);
+            hashvalue ^= TT.HashUpdate(own + 6, ip) ^ TT.HashUpdate(own + 6, fp);
+            hashvalue ^= TT.HashUpdate(own + 4, p1) ^ TT.HashUpdate(own + 4, p2);
             hashvalue ^= TT.HashIndex[0];
         }
     }
@@ -496,16 +496,16 @@ public class ChessBoard
     MakeMoveCornerRook(int piece, int square)
     {
         ulong CORNER_SQUARES = 0x8100000000000081UL;
-        ulong piece_pos = 1UL << square;
+        ulong piecePos = 1UL << square;
 
-        if (((piece_pos & CORNER_SQUARES) != 0) && (piece == 4))
+        if (((piecePos & CORNER_SQUARES) != 0) && (piece == 4))
         {
-            int old_csep = csep;
+            int oldCsep = csep;
             int y = (square + 1) >> 3;
             int z  = y + (y < 7 ? 9 : 0);
             csep &= 2047 ^ (1 << z);
 
-            hashvalue ^= TT.HashIndex[(old_csep >> 7) + TT.CastleBase];
+            hashvalue ^= TT.HashIndex[(oldCsep >> 7) + TT.CastleBase];
             hashvalue ^= TT.HashIndex[(csep >> 7) + TT.CastleBase];
         }
     }
@@ -525,7 +525,7 @@ public class ChessBoard
         if (n == 0)
             return 0;
         
-        int last_move = prevMoves[n - 1];
+        int lastMove = prevMoves[n - 1];
         csep = prevCseps[n - 1];
         hashvalue = prevHashKeys[n - 1];
 
@@ -533,7 +533,7 @@ public class ChessBoard
         prevCseps.RemoveAt(n - 1);
         prevHashKeys.RemoveAt(n - 1);
 
-        return last_move;
+        return lastMove;
     }
 
     #endregion

@@ -58,20 +58,20 @@ public class Arena : MonoBehaviour
     private void
     PrintGame(int result)
     {
-        string dir_games = Application.streamingAssetsPath + "/arena/Games/";
-        string dir_evals = Application.streamingAssetsPath + "/arena/Evals/";
-        string game_no = CurrentGameNum.ToString();
+        string dirGames = Application.streamingAssetsPath + "/arena/Games/";
+        string dirEvals = Application.streamingAssetsPath + "/arena/Evals/";
+        string gameNo = CurrentGameNum.ToString();
 
         // Create the directory if it does not exist
-        if (!Directory.Exists(dir_games))
-            Directory.CreateDirectory(dir_games);
+        if (!Directory.Exists(dirGames))
+            Directory.CreateDirectory(dirGames);
 
-        string path_pgn  = dir_games + "game" + game_no + ".pgn";
-        string played_moves = mm.Data.GetMoveList(mm.mg);
-        string pgn_header = ScoreSheet.GeneratePgnHeader(CurrentGameNum, result, mm.Data.StartFen());
+        string pathPgn  = dirGames + "game" + gameNo + ".pgn";
+        string playedMoves = mm.Data.GetMoveList(mm.mg);
+        string pgnHeader = ScoreSheet.GeneratePgnHeader(CurrentGameNum, result, mm.Data.StartFen());
 
-        string pgn = pgn_header + played_moves;
-        File.WriteAllText(path_pgn , pgn);
+        string pgn = pgnHeader + playedMoves;
+        File.WriteAllText(pathPgn , pgn);
     }
 
 
@@ -89,8 +89,8 @@ public class Arena : MonoBehaviour
             remark += "eval-diff | ";
         
         // Game ended with huge material on board
-        int weight_cutoff = 4000;
-        if (mm.BoardPosition.PositionWeight() > weight_cutoff)
+        int weightCutoff = 4000;
+        if (mm.BoardPosition.PositionWeight() > weightCutoff)
             remark += "huge material | ";
 
         if (state == GameEndState.DrawByRepetition)
@@ -121,36 +121,36 @@ public class Arena : MonoBehaviour
     private void
     DisplayEstimatedTime()
     {
-        double avg_game_time = sw.Elapsed.TotalSeconds / CurrentGameNum;
-        double est_time = avg_game_time * (GamesToPlay - CurrentGameNum);
+        double avgGameTime = sw.Elapsed.TotalSeconds / CurrentGameNum;
+        double estTime = avgGameTime * (GamesToPlay - CurrentGameNum);
 
-        if (Hud != null) Hud.SetEta(TimeFormat.Verbose(est_time));
+        if (Hud != null) Hud.SetEta(TimeFormat.Verbose(estTime));
     }
 
 
     private (int result, string remark)
-    UpdateArenaElements(int s2s, GameEndState end_state, int prediction)
+    UpdateArenaElements(int s2s, GameEndState endState, int prediction)
     {
-        int end_result = GetResultFromState(end_state);
-        string remark  = GameRemark(end_result, end_state, prediction);
+        int endResult = GetResultFromState(endState);
+        string remark  = GameRemark(endResult, endState, prediction);
 
         if (!string.IsNullOrEmpty(remark)) anomalyCount++;
 
         // Update Wins, Loss, Draw
-        ScoreSheet.Add(end_result, prediction, end_state);
+        ScoreSheet.Add(endResult, prediction, endState);
 
         // Display time to complete all remaining games
         DisplayEstimatedTime();
 
         // Print Game pgn if found interesting
-        PrintGame(end_result);
+        PrintGame(endResult);
 
         // Print Results when new game pair starts
         if (s2s == 1)
         {
             ScoreSheet.PrintArenaResult();
         }
-        ScoreSheet.PrintArenaResultLog(CurrentGameNum, end_result,
+        ScoreSheet.PrintArenaResultLog(CurrentGameNum, endResult,
             mm.Data.MoveCount(), remark);
 
         if (Hud != null)
@@ -160,10 +160,10 @@ public class Arena : MonoBehaviour
                          ScoreSheet.Draws,
                          ScoreSheet.Engine2Name);
             Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
-            Hud.AppendAnomaly(CurrentGameNum, end_result, remark);
+            Hud.AppendAnomaly(CurrentGameNum, endResult, remark);
         }
 
-        return (end_result, remark);
+        return (endResult, remark);
     }
 
 
@@ -172,9 +172,9 @@ public class Arena : MonoBehaviour
     {
         GameObject.FindAnyObjectByType<OpeningBook>().GetOpeningLines(OpeningsFilePath);
 
-        string dir_arena = Application.streamingAssetsPath + "/arena/";
-        if (!Directory.Exists(dir_arena))
-            Directory.CreateDirectory(dir_arena);
+        string dirArena = Application.streamingAssetsPath + "/arena/";
+        if (!Directory.Exists(dirArena))
+            Directory.CreateDirectory(dirArena);
 
         ScoreSheet = new ArenaScoreSheet(ArenaEngines[0], ArenaEngines[1],
             FixedTimePerGame, IncrementPerGame, fixedTimePerMove);
@@ -215,7 +215,7 @@ public class Arena : MonoBehaviour
     public IEnumerator
     PlayArena()
     {
-        string opening_moves = "";
+        string openingMoves = "";
         int side2start = 0;
         sw.Reset();
         sw.Start();
@@ -229,13 +229,13 @@ public class Arena : MonoBehaviour
             }
 
             if (side2start == 0)
-                opening_moves = FindAnyObjectByType<OpeningBook>().NextOpening();
+                openingMoves = FindAnyObjectByType<OpeningBook>().NextOpening();
 
             GameObject.FindAnyObjectByType<Timer>().SetTime(FixedTimePerGame, IncrementPerGame);
 
             // Play Current Match
             yield return StartCoroutine( mm.StartNewGame(
-                ArenaEngines[side2start], ArenaEngines[side2start ^ 1], opening_moves,
+                ArenaEngines[side2start], ArenaEngines[side2start ^ 1], openingMoves,
                 fixedTimePerMove, false,
                 Application.streamingAssetsPath + "/arena", CurrentGameNum
             ));

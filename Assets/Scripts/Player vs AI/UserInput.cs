@@ -23,17 +23,17 @@ class UserInput : MonoBehaviour
 
 
     private bool
-    InsideOfBoard(float __x, float __y)
+    InsideOfBoard(float x, float y)
     {
-        return (__x >= 0) && (__x < 8)
-            && (__y >= 0) && (__y < 8);
+        return (x >= 0) && (x < 8)
+            && (y >= 0) && (y < 8);
     }
 
 
     private IEnumerator
     MouseClickCoroutine()
     {
-        int __x = -1, __y = -1;
+        int x = -1, y = -1;
         SquareSelected = -1;
 
         while (true)
@@ -45,17 +45,17 @@ class UserInput : MonoBehaviour
                 // Left mouse button clicked
 
                 // Get the current mouse position
-                Vector3 mouse_pos = Camera.main.ScreenToWorldPoint(mouse.position.ReadValue());
+                Vector3 mousePos = Camera.main.ScreenToWorldPoint(mouse.position.ReadValue());
 
-                __x = (int)(mouse_pos.x + 0.5f);
-                __y = (int)(mouse_pos.y + 0.5f);
+                x = (int)(mousePos.x + 0.5f);
+                y = (int)(mousePos.y + 0.5f);
 
-                if (InsideOfBoard(__x, __y))
+                if (InsideOfBoard(x, y))
                     break;
             }
         }
 
-        SquareSelected = 8 * __y + __x;
+        SquareSelected = 8 * y + x;
     }
 
 

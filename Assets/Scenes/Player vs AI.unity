@@ -4158,9 +4158,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sr: {fileID: 1343248439}
   primary: {r: 0.94509804, g: 0.94509804, b: 0.94509804, a: 1}
-  highlight_color: {r: 0.8867924, g: 0.24376589, b: 0.17903166, a: 1}
-  move_start: {r: 0.84313726, g: 0.84313726, b: 0.15686275, a: 1}
-  move_end: {r: 0.84313726, g: 0.43529412, b: 0.17254902, a: 1}
+  highlightColor: {r: 0.8867924, g: 0.24376589, b: 0.17903166, a: 1}
+  moveStart: {r: 0.84313726, g: 0.84313726, b: 0.15686275, a: 1}
+  moveEnd: {r: 0.84313726, g: 0.43529412, b: 0.17254902, a: 1}
 --- !u!212 &1343248439 stripped
 SpriteRenderer:
   m_CorrespondingSourceObject: {fileID: 51614720689988115, guid: 9226d4902fab87a46b1171cf7f5337ab, type: 3}
@@ -4620,9 +4620,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sr: {fileID: 1679639757}
   primary: {r: 0.13725491, g: 0.4627451, b: 0.23137255, a: 1}
-  highlight_color: {r: 0.7264151, g: 0.1764706, b: 0.07812384, a: 1}
-  move_start: {r: 0.84313726, g: 0.84313726, b: 0.15686275, a: 1}
-  move_end: {r: 0.84313726, g: 0.43529412, b: 0.17254902, a: 1}
+  highlightColor: {r: 0.7264151, g: 0.1764706, b: 0.07812384, a: 1}
+  moveStart: {r: 0.84313726, g: 0.84313726, b: 0.15686275, a: 1}
+  moveEnd: {r: 0.84313726, g: 0.43529412, b: 0.17254902, a: 1}
 --- !u!212 &1679639757 stripped
 SpriteRenderer:
   m_CorrespondingSourceObject: {fileID: 51614721192491945, guid: 9226d4902fab87a46b1171cf7f5337ab, type: 3}

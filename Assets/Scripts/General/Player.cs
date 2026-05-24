@@ -8,7 +8,7 @@ using UnityEngine;
 
 public interface IPlayer
 {
-    IEnumerator Play(ChessBoard position, int last_move);
+    IEnumerator Play(ChessBoard position, int lastMove);
 
     (int, float) GetResults();
 
@@ -24,55 +24,55 @@ public interface IPlayer
 
 public class ChessEngine : IPlayer
 {
-    private   OpeningBook ob;
-    private static Timer tmr;
+    private   OpeningBook _ob;
+    private static Timer _tmr;
 
-    private Process EngineProcess;
-    private string  EngineName;
-    private string  EnginePath;
+    private Process _engineProcess;
+    private string  _engineName;
+    private string  _enginePath;
 
     public bool    FixedMoveTime;
     public bool AllowOpeningBook;
 
-    private readonly ConcurrentQueue<string> EngineOutput = new ConcurrentQueue<string>();
+    private readonly ConcurrentQueue<string> _engineOutput = new ConcurrentQueue<string>();
 
     // Stashed by Play() so ReadOutput can decode the engine's bestmove
-    // back into a packed-int move before EngineMove is exposed.
-    private ChessBoard CurrentPosition;
+    // back into a packed-int move before _engineMove is exposed.
+    private ChessBoard _currentPosition;
 
     // Anchor + replayed moves let the engine see repetition history.
     // Anchor is set on the engine's first Play() call (post-opening FEN
     // when applicable). Each subsequent turn appends the opponent's reply
     // and our own bestmove.
-    private string AnchorFen;
-    private readonly List<string> UciHistory = new List<string>();
-    private string LastBestmoveUci;
+    private string _anchorFen;
+    private readonly List<string> _uciHistory = new List<string>();
+    private string _lastBestmoveUci;
 
-    private   int EngineMove;
-    private float EngineEval;
+    private   int _engineMove;
+    private float _engineEval;
 
     // Optional per-game search-trace log. When set, every line the engine
     // emits on stdout (commands echoed, info lines, bestmove) is mirrored
     // here so Arena games are debuggable after the fact.
-    private StreamWriter SearchLog;
-    private readonly object SearchLogLock = new object();
+    private StreamWriter _searchLog;
+    private readonly object _searchLogLock = new object();
 
 
     public
-    ChessEngine(string __engine, bool __fixed_move_time=false,
-        bool __allow_opening_book=true, string __search_log_path=null)
+    ChessEngine(string engine, bool fixedMoveTime=false,
+        bool allowOpeningBook=true, string searchLogPath=null)
     {
-        ob  = GameObject.FindAnyObjectByType<OpeningBook>();
-        tmr = GameObject.FindAnyObjectByType<Timer>();
+        _ob  = GameObject.FindAnyObjectByType<OpeningBook>();
+        _tmr = GameObject.FindAnyObjectByType<Timer>();
 
-        EngineName       = __engine;
-        FixedMoveTime    = __fixed_move_time;
-        AllowOpeningBook = __allow_opening_book;
+        _engineName       = engine;
+        FixedMoveTime    = fixedMoveTime;
+        AllowOpeningBook = allowOpeningBook;
 
-        EnginePath = Application.streamingAssetsPath + "/" + __engine + ".exe";
+        _enginePath = Application.streamingAssetsPath + "/" + engine + ".exe";
 
-        EngineProcess = new Process();
-        EngineProcess.StartInfo = new ProcessStartInfo(EnginePath)
+        _engineProcess = new Process();
+        _engineProcess.StartInfo = new ProcessStartInfo(_enginePath)
         {
             UseShellExecute = false,
             RedirectStandardInput = true,
@@ -83,32 +83,32 @@ public class ChessEngine : IPlayer
             WorkingDirectory = Application.streamingAssetsPath,
         };
 
-        if (!string.IsNullOrEmpty(__search_log_path))
+        if (!string.IsNullOrEmpty(searchLogPath))
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(__search_log_path));
+                Directory.CreateDirectory(Path.GetDirectoryName(searchLogPath));
                 // No AutoFlush: lines buffer in memory and hit disk in batches
                 // instead of one synchronous write per `info` line. Stop()'s
                 // Dispose() flushes the tail at game end, so nothing is lost.
-                SearchLog = new StreamWriter(__search_log_path);
+                _searchLog = new StreamWriter(searchLogPath);
             }
             catch
             {
-                SearchLog = null;
+                _searchLog = null;
             }
         }
 
-        EngineProcess.OutputDataReceived += (sender, args) =>
+        _engineProcess.OutputDataReceived += (sender, args) =>
         {
             if (args.Data == null) return;
-            EngineOutput.Enqueue(args.Data);
+            _engineOutput.Enqueue(args.Data);
             WriteLog("< " + args.Data);
         };
 
-        EngineProcess.Start();
-        EngineProcess.BeginOutputReadLine();
-        EngineProcess.StandardInput.NewLine = "\n";
+        _engineProcess.Start();
+        _engineProcess.BeginOutputReadLine();
+        _engineProcess.StandardInput.NewLine = "\n";
 
         // UCI handshake. We don't strictly require uciok/readyok before
         // playing — the engine processes commands in order — but draining
@@ -122,10 +122,10 @@ public class ChessEngine : IPlayer
     private void
     WriteLog(string line)
     {
-        if (SearchLog == null) return;
-        lock (SearchLogLock)
+        if (_searchLog == null) return;
+        lock (_searchLogLock)
         {
-            try { SearchLog.WriteLine(line); }
+            try { _searchLog.WriteLine(line); }
             catch { /* log is best-effort; never block the game */ }
         }
     }
@@ -134,45 +134,45 @@ public class ChessEngine : IPlayer
     private void
     SendLine(string line)
     {
-        if (EngineProcess == null || EngineProcess.HasExited) return;
-        EngineProcess.StandardInput.WriteLine(line);
-        EngineProcess.StandardInput.Flush();
+        if (_engineProcess == null || _engineProcess.HasExited) return;
+        _engineProcess.StandardInput.WriteLine(line);
+        _engineProcess.StandardInput.Flush();
         WriteLog("> " + line);
     }
 
 
     public IEnumerator
-    Play(ChessBoard position, int last_move)
+    Play(ChessBoard position, int lastMove)
     {
-        EngineMove = 0;
-        EngineEval = 0;
-        LastBestmoveUci = null;
-        CurrentPosition = position;
+        _engineMove = 0;
+        _engineEval = 0;
+        _lastBestmoveUci = null;
+        _currentPosition = position;
 
         // First call locks in the anchor FEN. On subsequent calls, the
         // opponent's reply is appended so the engine sees full history
         // since the engine first saw the game.
-        if (AnchorFen == null)
+        if (_anchorFen == null)
         {
-            AnchorFen = position.Fen();
+            _anchorFen = position.Fen();
         }
-        else if (last_move != 0)
+        else if (lastMove != 0)
         {
-            UciHistory.Add(MoveCodec.EncodeToUci(last_move));
+            _uciHistory.Add(MoveCodec.EncodeToUci(lastMove));
         }
 
         // Play Book Move if possible
-        bool bookAvailable = (ob != null) && (ob.Book != null) && (ob.Book.Count > 0);
-        if (AllowOpeningBook && bookAvailable && ob.PositionInOpeningBook(ref position))
+        bool bookAvailable = (_ob != null) && (_ob.Book != null) && (_ob.Book.Count > 0);
+        if (AllowOpeningBook && bookAvailable && _ob.PositionInOpeningBook(ref position))
         {
-            int bookMove = ob.PlayBookMove(ref position);
-            EngineEval = 0;
-            EngineMove = bookMove;
-            UciHistory.Add(MoveCodec.EncodeToUci(bookMove));
+            int bookMove = _ob.PlayBookMove(ref position);
+            _engineEval = 0;
+            _engineMove = bookMove;
+            _uciHistory.Add(MoveCodec.EncodeToUci(bookMove));
             yield break;
         }
 
-        SendPosition(AnchorFen, UciHistory);
+        SendPosition(_anchorFen, _uciHistory);
 
         if (FixedMoveTime)
         {
@@ -185,9 +185,9 @@ public class ChessEngine : IPlayer
             // Forward the raw clock and let the engine decide its own search
             // time (UCI-correct split). ChessClocks[0] = white, [1] = black;
             // clocks can dip briefly negative, so clamp each to >= 1 ms.
-            int wtime = Mathf.Max(1, Mathf.RoundToInt(tmr.ChessClocks[0] * 1000f));
-            int btime = Mathf.Max(1, Mathf.RoundToInt(tmr.ChessClocks[1] * 1000f));
-            int inc   = Mathf.Max(0, Mathf.RoundToInt(tmr.IncrementTime    * 1000f));
+            int wtime = Mathf.Max(1, Mathf.RoundToInt(_tmr.ChessClocks[0] * 1000f));
+            int btime = Mathf.Max(1, Mathf.RoundToInt(_tmr.ChessClocks[1] * 1000f));
+            int inc   = Mathf.Max(0, Mathf.RoundToInt(_tmr.IncrementTime    * 1000f));
 
             SendLine("go wtime " + wtime + " btime " + btime
                 + " winc " + inc + " binc " + inc);
@@ -196,8 +196,8 @@ public class ChessEngine : IPlayer
         yield return new WaitUntil( ReadOutput );
 
         // Track our own move so the engine sees it as part of history next turn.
-        if (LastBestmoveUci != null && EngineMove > 0)
-            UciHistory.Add(LastBestmoveUci);
+        if (_lastBestmoveUci != null && _engineMove > 0)
+            _uciHistory.Add(_lastBestmoveUci);
     }
 
 
@@ -215,10 +215,10 @@ public class ChessEngine : IPlayer
     public bool
     ReadOutput()
     {
-        if ((EngineProcess == null) || (EngineMove == -1))
+        if ((_engineProcess == null) || (_engineMove == -1))
             return true;
 
-        while (EngineOutput.TryDequeue(out string line))
+        while (_engineOutput.TryDequeue(out string line))
         {
             if (line.StartsWith("info "))
             {
@@ -232,17 +232,17 @@ public class ChessEngine : IPlayer
             if (parts.Length < 2) continue;
 
             string uci = parts[1];
-            // EngineEval already populated from latest "info score" line.
-            LastBestmoveUci = uci;
+            // _engineEval already populated from latest "info score" line.
+            _lastBestmoveUci = uci;
 
             if (uci == "0000")
             {
-                EngineMove = 0;
+                _engineMove = 0;
             }
             else
             {
-                int packed = MoveCodec.DecodeFromUci(uci, ref CurrentPosition);
-                EngineMove = packed;
+                int packed = MoveCodec.DecodeFromUci(uci, ref _currentPosition);
+                _engineMove = packed;
             }
             return true;
         }
@@ -252,7 +252,7 @@ public class ChessEngine : IPlayer
 
 
     // Parses "info ... score cp N ..." or "info ... score mate N ..." and
-    // stores the result in EngineEval as a white-relative pawn-unit float.
+    // stores the result in _engineEval as a white-relative pawn-unit float.
     // Elsa emits cp from the side-to-move POV, so we flip when STM is black
     // to match the white-relative convention used by MatchData / PredictionCall.
     private void
@@ -275,39 +275,39 @@ public class ChessEngine : IPlayer
             return;
 
         // ChessBoard.color: 1 = white to move, 0 = black to move.
-        int sign = (CurrentPosition.color == 1) ? 1 : -1;
-        EngineEval = sign * stmEval;
+        int sign = (_currentPosition.color == 1) ? 1 : -1;
+        _engineEval = sign * stmEval;
     }
 
 
     public void
     Stop()
     {
-        if (EngineProcess != null && !EngineProcess.HasExited)
+        if (_engineProcess != null && !_engineProcess.HasExited)
         {
             try
             {
                 SendLine("quit");
-                if (!EngineProcess.WaitForExit(2000))
-                    EngineProcess.Kill();
+                if (!_engineProcess.WaitForExit(2000))
+                    _engineProcess.Kill();
             }
             catch
             {
-                try { EngineProcess.Kill(); } catch { /* already gone */ }
+                try { _engineProcess.Kill(); } catch { /* already gone */ }
             }
 
-            EngineProcess.Close();
-            EngineProcess.Dispose();
+            _engineProcess.Close();
+            _engineProcess.Dispose();
         }
 
-        EngineProcess = null;
+        _engineProcess = null;
 
-        if (SearchLog != null)
+        if (_searchLog != null)
         {
-            lock (SearchLogLock)
+            lock (_searchLogLock)
             {
-                try { SearchLog.Dispose(); } catch { /* already gone */ }
-                SearchLog = null;
+                try { _searchLog.Dispose(); } catch { /* already gone */ }
+                _searchLog = null;
             }
         }
     }
@@ -315,70 +315,70 @@ public class ChessEngine : IPlayer
 
     public bool
     MoveFound()
-    { return EngineMove > 0; }
+    { return _engineMove > 0; }
 
 
     public void
     StopReadOutput()
-    { EngineMove = -1; }
+    { _engineMove = -1; }
 
 
     public (int, float)
     GetResults()
-    { return (EngineMove, EngineEval); }
+    { return (_engineMove, _engineEval); }
 }
 
 
 public class HumanPlayer : IPlayer
 {
-    private UserInput ui;
-    private MoveGenerator mg;
+    private UserInput _ui;
+    private MoveGenerator _mg;
 
-    private   int HumanMove;
-    private float HumanEval;
+    private   int _humanMove;
+    private float _humanEval;
 
-    ChessBoard BoardPosition;
+    ChessBoard _boardPosition;
 
 
     public
     HumanPlayer()
     {
-        ui = GameObject.FindAnyObjectByType<UserInput>();
-        mg = GameObject.FindAnyObjectByType<MoveGenerator>();
+        _ui = GameObject.FindAnyObjectByType<UserInput>();
+        _mg = GameObject.FindAnyObjectByType<MoveGenerator>();
     }
 
 
     public (int, float)
     GetResults()
-    { return (HumanMove, HumanEval); }
+    { return (_humanMove, _humanEval); }
 
 
     public IEnumerator
-    Play(ChessBoard position, int last_move)
+    Play(ChessBoard position, int lastMove)
     {
-        HumanMove = 0;
-        HumanEval = 0;
-        BoardPosition = position;
+        _humanMove = 0;
+        _humanEval = 0;
+        _boardPosition = position;
 
-        MoveList movelist = mg.GenerateMoves(ref BoardPosition);
+        MoveList movelist = _mg.GenerateMoves(ref _boardPosition);
 
-        ui.GetSquares(ref movelist);
-        yield return new WaitUntil(() => (ui.InitSquare != -1) && (ui.DestSquare != -1));
+        _ui.GetSquares(ref movelist);
+        yield return new WaitUntil(() => (_ui.InitSquare != -1) && (_ui.DestSquare != -1));
 
-        HumanMove = MoveCodec.Encode(
-            ref BoardPosition, ui.InitSquare, ui.DestSquare, ui.PromotedPiece);
-        HumanEval = 0;
+        _humanMove = MoveCodec.Encode(
+            ref _boardPosition, _ui.InitSquare, _ui.DestSquare, _ui.PromotedPiece);
+        _humanEval = 0;
     }
 
 
     public bool
     MoveFound()
-    { return HumanMove > 0; }
+    { return _humanMove > 0; }
 
 
     public void
     StopReadOutput()
-    { HumanMove = -1; }
+    { _humanMove = -1; }
 
 
     public bool

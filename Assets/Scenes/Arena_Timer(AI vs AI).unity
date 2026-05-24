@@ -3590,9 +3590,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sr: {fileID: 51614721802409968}
   primary: {r: 0.13725491, g: 0.4627451, b: 0.23137255, a: 1}
-  highlight_color: {r: 0.6415094, g: 0.08714841, b: 0.08714841, a: 1}
-  move_start: {r: 0.84313726, g: 0.84313726, b: 0.15686275, a: 1}
-  move_end: {r: 0.84313726, g: 0.43529412, b: 0.17254902, a: 1}
+  highlightColor: {r: 0.6415094, g: 0.08714841, b: 0.08714841, a: 1}
+  moveStart: {r: 0.84313726, g: 0.84313726, b: 0.15686275, a: 1}
+  moveEnd: {r: 0.84313726, g: 0.43529412, b: 0.17254902, a: 1}
 --- !u!1 &675688057
 GameObject:
   m_ObjectHideFlags: 0
@@ -7401,9 +7401,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sr: {fileID: 51614721802409967}
   primary: {r: 0.94509804, g: 0.94509804, b: 0.94509804, a: 1}
-  highlight_color: {r: 0.7924528, g: 0.13755782, b: 0.15037248, a: 1}
-  move_start: {r: 0.84313726, g: 0.84313726, b: 0.15686275, a: 1}
-  move_end: {r: 0.8396226, g: 0.43308684, b: 0.1695087, a: 1}
+  highlightColor: {r: 0.7924528, g: 0.13755782, b: 0.15037248, a: 1}
+  moveStart: {r: 0.84313726, g: 0.84313726, b: 0.15686275, a: 1}
+  moveEnd: {r: 0.8396226, g: 0.43308684, b: 0.1695087, a: 1}
 --- !u!1 &1182372603
 GameObject:
   m_ObjectHideFlags: 0

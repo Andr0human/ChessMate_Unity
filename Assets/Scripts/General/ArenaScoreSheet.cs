@@ -8,15 +8,15 @@ public class ArenaScoreSheet
     private string engine1;
     private string engine2;
 
-    private float time_per_game;
-    private float time_increment;
-    private bool  fixed_time_per_move;
+    private float timePerGame;
+    private float timeIncrement;
+    private bool  fixedTimePerMove;
 
-    private int prediction_attempt;
-    private int prediction_success;
+    private int predictionAttempt;
+    private int predictionSuccess;
 
-    private int engine1_loss_on_time;
-    private int engine2_loss_on_time;
+    private int engine1LossOnTime;
+    private int engine2LossOnTime;
 
     private List<int> results;
 
@@ -27,29 +27,29 @@ public class ArenaScoreSheet
     public int    Engine2Wins { get { int n = 0; foreach (var r in TallyByPair(-1)) n += r; return n; } }
     public int    Draws       { get { int n = 0; foreach (var r in results) if (r == 0) n++; return n; } }
 
-    private int[] TallyByPair(int win_value)
+    private int[] TallyByPair(int winValue)
     {
-        var (a, b) = CalculateWins(win_value);
+        var (a, b) = CalculateWins(winValue);
         return new int[] { a, b };
     }
 
 
-    public ArenaScoreSheet(string __engine1, string __engine2,
-        float __time_per_game, float __time_increment, bool __fixed_time_per_move)
+    public ArenaScoreSheet(string name1, string name2,
+        float timePerGame, float timeIncrement, bool fixedTimePerMove)
     {
-        engine1 = __engine1;
-        engine2 = __engine2;
+        engine1 = name1;
+        engine2 = name2;
 
-        time_per_game = __time_per_game;
-        time_increment = __time_increment;
-        fixed_time_per_move = __fixed_time_per_move;
+        this.timePerGame = timePerGame;
+        this.timeIncrement = timeIncrement;
+        this.fixedTimePerMove = fixedTimePerMove;
 
-        prediction_attempt = prediction_success = 0;
-        engine1_loss_on_time = engine2_loss_on_time = 0;
+        predictionAttempt = predictionSuccess = 0;
+        engine1LossOnTime = engine2LossOnTime = 0;
         results = new List<int>();
 
-        string file_path = Application.streamingAssetsPath + "/arena/results_log.csv";
-        File.WriteAllText(file_path, "GameNo, Result, WhitePlayer, BlackPlayer, MoveCount, Remarks\n");
+        string filePath = Application.streamingAssetsPath + "/arena/results_log.csv";
+        File.WriteAllText(filePath, "GameNo, Result, WhitePlayer, BlackPlayer, MoveCount, Remarks\n");
     }
 
 
@@ -60,38 +60,38 @@ public class ArenaScoreSheet
 
         if (prediction != 0)
         {
-            prediction_attempt++;
+            predictionAttempt++;
             if (prediction == result)
-                prediction_success++;
+                predictionSuccess++;
         }
 
         if (results.Count % 2 == 1)
         {
             if (state == GameEndState.WhiteWinsOnTime)
-                engine2_loss_on_time++;
+                engine2LossOnTime++;
             if (state == GameEndState.BlackWinsOnTime)
-                engine1_loss_on_time++;
+                engine1LossOnTime++;
         }
         else
         {
             if (state == GameEndState.WhiteWinsOnTime)
-                engine1_loss_on_time++;
+                engine1LossOnTime++;
             if (state == GameEndState.BlackWinsOnTime)
-                engine2_loss_on_time++;
+                engine2LossOnTime++;
         }
     }
 
 
     private (int, int)
-    CalculateWins(int win_value)
+    CalculateWins(int winValue)
     {
         int count1 = 0, count2 = 0;
 
         for (int i = 0; i < results.Count; i += 2)
-            if (results[i] == win_value) count1++;
+            if (results[i] == winValue) count1++;
 
         for (int i = 1; i < results.Count; i += 2)
-            if (results[i] == -win_value) count2++;
+            if (results[i] == -winValue) count2++;
 
         return (count1, count2);
     }
@@ -100,99 +100,99 @@ public class ArenaScoreSheet
     public void
     PrintArenaResult()
     {
-        var ( e1_wins_w,  e1_wins_b) = CalculateWins(1);
-        var ( e2_wins_b,  e2_wins_w) = CalculateWins(-1);
-        var (e1_draws_w, e1_draws_b) = CalculateWins(0);
+        var ( e1WinsW,  e1WinsB) = CalculateWins(1);
+        var ( e2WinsB,  e2WinsW) = CalculateWins(-1);
+        var (e1DrawsW, e1DrawsB) = CalculateWins(0);
 
-        int  e1_wins_t =  e1_wins_w +  e1_wins_b;
-        int  e2_wins_t =  e2_wins_w +  e2_wins_b;
-        int e1_draws_t = e1_draws_w + e1_draws_b;
+        int  e1WinsT =  e1WinsW +  e1WinsB;
+        int  e2WinsT =  e2WinsW +  e2WinsB;
+        int e1DrawsT = e1DrawsW + e1DrawsB;
 
-        string file_path = Application.streamingAssetsPath + "/arena/results.txt";
+        string filePath = Application.streamingAssetsPath + "/arena/results.txt";
 
-        string time_control = fixed_time_per_move
-            ? $"Fixed {time_per_game:0.##}s per move"
-            : $"{time_per_game:0.##}s + {time_increment:0.##}s increment";
+        string timeControl = fixedTimePerMove
+            ? $"Fixed {timePerGame:0.##}s per move"
+            : $"{timePerGame:0.##}s + {timeIncrement:0.##}s increment";
 
-        int name_width = System.Math.Max(engine1.Length, engine2.Length);
+        int nameWidth = System.Math.Max(engine1.Length, engine2.Length);
 
         string sep = new string('=', 50);
 
-        File.WriteAllText(file_path,
+        File.WriteAllText(filePath,
             sep + "\n"
             + "                ARENA RESULTS\n"
             + sep + "\n"
             + engine1 + "  vs  " + engine2 + "\n\n"
-            + "Time Control : " + time_control + "\n"
+            + "Time Control : " + timeControl + "\n"
             + "Games Played : " + results.Count.ToString() + "\n\n"
             + "             Wins   Draws   Losses\n"
-            + string.Format("   White : {0,4}    {1,4}    {2,4}\n",  e1_wins_w, e1_draws_w, e2_wins_b)
-            + string.Format("   Black : {0,4}    {1,4}    {2,4}\n",  e1_wins_b, e1_draws_b, e2_wins_w)
-            + string.Format("   Total : {0,4}    {1,4}    {2,4}\n\n", e1_wins_t, e1_draws_t, e2_wins_t)
-            + "Prediction Accuracy : " + prediction_success.ToString() + "/" + prediction_attempt.ToString() + "\n\n"
+            + string.Format("   White : {0,4}    {1,4}    {2,4}\n",  e1WinsW, e1DrawsW, e2WinsB)
+            + string.Format("   Black : {0,4}    {1,4}    {2,4}\n",  e1WinsB, e1DrawsB, e2WinsW)
+            + string.Format("   Total : {0,4}    {1,4}    {2,4}\n\n", e1WinsT, e1DrawsT, e2WinsT)
+            + "Prediction Accuracy : " + predictionSuccess.ToString() + "/" + predictionAttempt.ToString() + "\n\n"
             + "Losses on Time\n"
-            + "   " + engine1.PadRight(name_width) + " : " + engine1_loss_on_time.ToString() + "\n"
-            + "   " + engine2.PadRight(name_width) + " : " + engine2_loss_on_time.ToString() + "\n"
+            + "   " + engine1.PadRight(nameWidth) + " : " + engine1LossOnTime.ToString() + "\n"
+            + "   " + engine2.PadRight(nameWidth) + " : " + engine2LossOnTime.ToString() + "\n"
             + sep + "\n"
         );
     }
 
 
     public string
-    GeneratePgnHeader(int game_no, int result, string fen)
+    GeneratePgnHeader(int gameNo, int result, string fen)
     {
-        string white = game_no % 2 == 1 ? engine1 : engine2;
-        string black = game_no % 2 == 0 ? engine1 : engine2;
+        string white = gameNo % 2 == 1 ? engine1 : engine2;
+        string black = gameNo % 2 == 0 ? engine1 : engine2;
 
-        string event_name = engine1 + " vs " + engine2 + " Unit Testing";
+        string eventName = engine1 + " vs " + engine2 + " Unit Testing";
 
         System.DateTime theTime = System.DateTime.Now;
-        string date_string = theTime.Year + "." + theTime.Month + "." + theTime.Day;
+        string dateString = theTime.Year + "." + theTime.Month + "." + theTime.Day;
 
-        string result_string = "";
+        string resultString = "";
 
         if (result == 1)
-            result_string = "1-0";
+            resultString = "1-0";
         else if (result == -1)
-            result_string = "0-1";
+            resultString = "0-1";
         else
-            result_string = "1/2-1/2";
+            resultString = "1/2-1/2";
 
         return
-            "[Event \""  + event_name + "\"]\n"
+            "[Event \""  + eventName + "\"]\n"
           + "[Site \"?\"]\n"
-          + "[Date \""   + date_string + "\"]\n"
-          + "[Round \""  + game_no.ToString()  + "\"]\n"
+          + "[Date \""   + dateString + "\"]\n"
+          + "[Round \""  + gameNo.ToString()  + "\"]\n"
           + "[White \""  + white  + "\"]\n"
           + "[Black \""  + black  + "\"]\n"
-          + "[Result \"" + result_string + "\"]\n"
+          + "[Result \"" + resultString + "\"]\n"
           + "[FEN \""    + fen + "\"]\n\n";
     }
 
 
     public void
-    PrintArenaResultLog(int game_no, int result, int movecount, string remark)
+    PrintArenaResultLog(int gameNo, int result, int moveCount, string remark)
     {
-        string file_path = Application.streamingAssetsPath + "/arena/results_log.csv";
+        string filePath = Application.streamingAssetsPath + "/arena/results_log.csv";
 
-        string csv_line = "";
-        csv_line = game_no.ToString() + ", ";
+        string csvLine = "";
+        csvLine = gameNo.ToString() + ", ";
 
         if (result == 1)
-            csv_line += "1-0, ";
+            csvLine += "1-0, ";
         else if (result == -1)
-            csv_line += "0-1, ";
+            csvLine += "0-1, ";
         else
-            csv_line += "1/2-1/2, ";
+            csvLine += "1/2-1/2, ";
 
-        string white = game_no % 2 == 1 ? engine1 : engine2;
-        string black = game_no % 2 == 0 ? engine1 : engine2;
+        string white = gameNo % 2 == 1 ? engine1 : engine2;
+        string black = gameNo % 2 == 0 ? engine1 : engine2;
 
-        csv_line += white + ", " + black + ", ";
+        csvLine += white + ", " + black + ", ";
 
-        int m = (movecount + 1) / 2;
-        csv_line += m.ToString() + ", " + remark + "\n";
+        int m = (moveCount + 1) / 2;
+        csvLine += m.ToString() + ", " + remark + "\n";
 
-        File.AppendAllText(file_path, csv_line);
+        File.AppendAllText(filePath, csvLine);
     }
 }

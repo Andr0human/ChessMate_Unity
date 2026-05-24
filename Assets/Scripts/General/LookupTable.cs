@@ -19,19 +19,19 @@ public class LookupTable
 
 
     private static bool
-    InRange(int __x, int __y)
-    { return (__x >= 0) & (__x < 8) & (__y >= 0) & (__y < 8); }
+    InRange(int x, int y)
+    { return (x >= 0) & (x < 8) & (y >= 0) & (y < 8); }
 
 
     private static void
-    BuildSlidingTable(ref ulong[] table, int index, int index_inc, int inc_x, int inc_y)
+    BuildSlidingTable(ref ulong[] table, int index, int indexInc, int incX, int incY)
     {
-        for (int idx = index;; idx += index_inc)
+        for (int idx = index;; idx += indexInc)
         {
             if (idx < 0 || idx >= 64) break;
             int x = (idx & 7), y = (idx - x) >> 3;
             ulong val = 0;
-            for (int i = x, j = y; InRange(i, j); i += inc_x, j += inc_y)
+            for (int i = x, j = y; InRange(i, j); i += incX, j += incY)
             {
                 table[8 * j + i] = val;
                 val |= 1UL << (8 * j + i);

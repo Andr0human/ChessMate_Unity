@@ -51,17 +51,17 @@ public class Timer : MonoBehaviour
     }
 
     public void
-    TextColorChange(ref TextMeshProUGUI __t, float time_left)
+    TextColorChange(ref TextMeshProUGUI t, float timeLeft)
     {
         if (!ColorByTimeLeft) return;
 
-        float a = __t.color.a;
-        if (time_left < 15f)
-            __t.color = new Color(0.844f, 0.086f, 0.0267f, a);
-        else if (time_left < 45f)
-            __t.color = new Color(1f, 0.901f, 0.156f, a);
+        float a = t.color.a;
+        if (timeLeft < 15f)
+            t.color = new Color(0.844f, 0.086f, 0.0267f, a);
+        else if (timeLeft < 45f)
+            t.color = new Color(1f, 0.901f, 0.156f, a);
         else
-            __t.color = new Color(0.1297f, 0.5f, 0.16841f, a);
+            t.color = new Color(0.1297f, 0.5f, 0.16841f, a);
     }
 
     public void
@@ -87,14 +87,14 @@ public class Timer : MonoBehaviour
     }
 
     public string
-    RemainingTime(double time_left)
+    RemainingTime(double timeLeft)
     {
-        if (time_left < 0.0) time_left = 0.0;
+        if (timeLeft < 0.0) timeLeft = 0.0;
 
-        if (time_left < 15.0)
-            return string.Format("0:{0:00.0}", time_left);
+        if (timeLeft < 15.0)
+            return string.Format("0:{0:00.0}", timeLeft);
 
-        var (hr, mn, sec) = TimeFormat.Split(time_left);
+        var (hr, mn, sec) = TimeFormat.Split(timeLeft);
 
         if (hr > 0)
             return string.Format("{0}:{1:00}:{2:00}", hr, mn, sec);
@@ -102,9 +102,9 @@ public class Timer : MonoBehaviour
     }
 
     public void
-    SetTime(float _x, float _y)
+    SetTime(float perSide, float increment)
     {
-        AllotedTimePerSide = _x;
-        IncrementTime = _y;
+        AllotedTimePerSide = perSide;
+        IncrementTime = increment;
     }
 }

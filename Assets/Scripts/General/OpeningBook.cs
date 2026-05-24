@@ -33,23 +33,23 @@ public class OpeningBook : MonoBehaviour
     ExtractLine(string opening)
     {
         string[] moves = opening.Split();
-        List<int> encoded_line = new List<int>();
+        List<int> encodedLine = new List<int>();
         ChessBoard board = new ChessBoard(startFen);
 
         foreach (string move in moves)
         {
-            int e_move = MoveCodec.DecodeFromUci(move, ref board);
-            encoded_line.Add(e_move);
-            board.MakeMove(e_move);
+            int eMove = MoveCodec.DecodeFromUci(move, ref board);
+            encodedLine.Add(eMove);
+            board.MakeMove(eMove);
         }
-        return encoded_line;
+        return encodedLine;
     }
 
 
     public void
-    GetOpeningLines(string file_path)
+    GetOpeningLines(string filePath)
     {
-        string path = Application.streamingAssetsPath + "/Utility/" + file_path + ".opening";
+        string path = Application.streamingAssetsPath + "/Utility/" + filePath + ".opening";
         openings = File.ReadAllLines(path);
     }
 
@@ -68,14 +68,14 @@ public class OpeningBook : MonoBehaviour
     {
         Book = new Dictionary<ulong, List<int>>();
 
-        string book_path = Application.streamingAssetsPath + "/Utility/Opening Book.opening";
-        if (!File.Exists(book_path))
+        string bookPath = Application.streamingAssetsPath + "/Utility/Opening Book.opening";
+        if (!File.Exists(bookPath))
         {
-            UnityEngine.Debug.LogWarning("No opening book found at " + book_path);
+            UnityEngine.Debug.LogWarning("No opening book found at " + bookPath);
             return;
         }
 
-        string[] lines = File.ReadAllLines(book_path);
+        string[] lines = File.ReadAllLines(bookPath);
 
         foreach (string line in lines)
         {
@@ -88,45 +88,45 @@ public class OpeningBook : MonoBehaviour
                 if (!Book.ContainsKey(key))
                     Book[key] = new List<int>();
 
-                int e_move = MoveCodec.DecodeFromUci(move, ref position);
+                int eMove = MoveCodec.DecodeFromUci(move, ref position);
 
-                if (Book[key].Contains(e_move) == false)
-                    Book[key].Add(e_move);
-                position.MakeMove(e_move);
+                if (Book[key].Contains(eMove) == false)
+                    Book[key].Add(eMove);
+                position.MakeMove(eMove);
             }
         }
         UnityEngine.Debug.Log("Opening Book Generated!");
     }
 
     public bool
-    PositionInOpeningBook(ref ChessBoard __pos)
+    PositionInOpeningBook(ref ChessBoard pos)
     {
-        ulong key = __pos.GenerateHashKey();
+        ulong key = pos.GenerateHashKey();
 
         return Book.ContainsKey(key) ?
-            PositionValidityCheck(key, ref __pos) : false;
+            PositionValidityCheck(key, ref pos) : false;
     }
 
     private bool
-    PositionValidityCheck(ulong key, ref ChessBoard __pos)
+    PositionValidityCheck(ulong key, ref ChessBoard pos)
     {
-        List<int> moves_from_book = Book[key];
-        MoveList move_list = mg.GenerateMoves(ref __pos);
+        List<int> movesFromBook = Book[key];
+        MoveList moveList = mg.GenerateMoves(ref pos);
 
-        foreach (int move in moves_from_book)
-            if (move_list.ContainsMove(move) == false) return false;
+        foreach (int move in movesFromBook)
+            if (moveList.ContainsMove(move) == false) return false;
 
         return true;
     }
     
     public int
-    PlayBookMove(ref ChessBoard __pos) 
+    PlayBookMove(ref ChessBoard pos) 
     {
-        ulong key = __pos.GenerateHashKey();
+        ulong key = pos.GenerateHashKey();
         List<int> moves = Book[key];
 
-        int random_index = UnityEngine.Random.Range(0, moves.Count);
-        return moves[random_index];
+        int randomIndex = UnityEngine.Random.Range(0, moves.Count);
+        return moves[randomIndex];
     }
 
 }

@@ -80,13 +80,13 @@ public class DashBoard : MonoBehaviour
         }
 
 
-        string player_white = (SideOption == 0) ? "human" : "bot";
-        string player_black = (SideOption == 1) ? "human" : "bot";
+        string playerWhite = (SideOption == 0) ? "human" : "bot";
+        string playerBlack = (SideOption == 1) ? "human" : "bot";
 
         //! TODO code <FixedMoveTime>
         StartCoroutine(
             GameObject.FindAnyObjectByType<MatchManager>().StartNewGame(
-                player_white, player_black, "",
+                playerWhite, playerBlack, "",
                 false, true
             )
         );

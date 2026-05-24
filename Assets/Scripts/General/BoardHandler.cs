@@ -11,15 +11,15 @@ public class BoardHandler : MonoBehaviour
     private readonly GameObject[]  TileAt = new GameObject[64];
 
     public void
-    InitializeBoard(ref ChessBoard _cb)
+    InitializeBoard(ref ChessBoard cb)
     {
         WhiteTile = GameObject.Find("White Tile");
         BlackTile = GameObject.Find("Black Tile");
-        StartCoroutine(BoardGenerator(_cb));
+        StartCoroutine(BoardGenerator(cb));
     }
 
     private IEnumerator
-    BoardGenerator(ChessBoard _cb)
+    BoardGenerator(ChessBoard cb)
     {
         int[] arr = new int[64];
         for (int i = 0; i < 64; i++) arr[i] = i;
@@ -44,15 +44,15 @@ public class BoardHandler : MonoBehaviour
             yield return new WaitForSeconds(0.01f);
         }
 
-        for (int piece_type = 1; piece_type <= 6; piece_type++)
+        for (int pieceType = 1; pieceType <= 6; pieceType++)
         {
             for (int side = 0; side <= 1; side++)
             {
-                ulong piece = _cb.pieces[8 * side + piece_type];
+                ulong piece = cb.pieces[8 * side + pieceType];
                 while (piece != 0)
                 {
-                    int sq = _cb.LsbIdx(piece);
-                    SpawnPiece(sq, 8 * side + piece_type);
+                    int sq = cb.LsbIdx(piece);
+                    SpawnPiece(sq, 8 * side + pieceType);
                     piece &= piece - 1;
                     yield return new WaitForSeconds(0.01f);
                 }
@@ -75,11 +75,11 @@ public class BoardHandler : MonoBehaviour
     }
 
     public void
-    BoardReset(bool spare_last_move = false)
+    BoardReset(bool spareLastMove = false)
     {
         for (int i = 0; i < 64; i++)
         {
-            TileAt[i].GetComponent<TileSet>().reset_back(spare_last_move);
+            TileAt[i].GetComponent<TileSet>().ResetBack(spareLastMove);
         }
     }
 
@@ -89,16 +89,16 @@ public class BoardHandler : MonoBehaviour
         for (int sq = 0; sq < 64; sq++)
         {
             if (((1UL << sq) & end) != 0)
-                TileAt[sq].GetComponent<TileSet>().high_light();
+                TileAt[sq].GetComponent<TileSet>().Highlight();
         }
     }
 
     public void
-    Recreate(ref ChessBoard _cb)
+    Recreate(ref ChessBoard cb)
     {
         for (int i = 0; i < 64; i++)
         {
-            SpawnPiece(i, _cb.board[i]);
+            SpawnPiece(i, cb.board[i]);
         }
     }
 
@@ -106,7 +106,7 @@ public class BoardHandler : MonoBehaviour
     MarkPlayedMove(int move)
     {
         int ip = move & 63, fp = (move >> 6) & 63;
-        TileAt[ip].GetComponent<TileSet>().mark_start_move();
-        TileAt[fp].GetComponent<TileSet>().mark_end_move();
+        TileAt[ip].GetComponent<TileSet>().MarkStartMove();
+        TileAt[fp].GetComponent<TileSet>().MarkEndMove();
     }
 }

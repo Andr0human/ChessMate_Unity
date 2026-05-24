@@ -13,22 +13,22 @@ public class MoveGenerator : MonoBehaviour
         int own = pos.Own();
         int emy = pos.Emy();
         int side = own >> 3;
-        int k_sq = pos.IndexNo(pos.King(own));
+        int kSq = pos.IndexNo(pos.King(own));
 
         pos.MakeMove(move);
 
         ulong apieces = pos.All();
 
-        ulong line_mask = RookAttackedSquares(ref pos, k_sq, apieces);
-        ulong diag_mask = BishopAttackedSquares(ref pos, k_sq, apieces);
-        ulong knight_mask = KnightAttackedSquares(k_sq);
-        ulong pawn_mask = lt.PawnCaptureMasks[side][k_sq];
+        ulong lineMask = RookAttackedSquares(ref pos, kSq, apieces);
+        ulong diagMask = BishopAttackedSquares(ref pos, kSq, apieces);
+        ulong knightMask = KnightAttackedSquares(kSq);
+        ulong pawnMask = lt.PawnCaptureMasks[side][kSq];
 
         bool res = (
-            (line_mask & (pos.Queen(emy) | pos.Rook(emy)))
-          | (diag_mask & (pos.Queen(emy) | pos.Bishop(emy)))
-          | (knight_mask & pos.Knight(emy))
-          | (pawn_mask & pos.Pawn(emy)) ) == 0;
+            (lineMask & (pos.Queen(emy) | pos.Rook(emy)))
+          | (diagMask & (pos.Queen(emy) | pos.Bishop(emy)))
+          | (knightMask & pos.Knight(emy))
+          | (pawnMask & pos.Pawn(emy)) ) == 0;
 
         pos.UnmakeMove();
         return res;
@@ -38,25 +38,25 @@ public class MoveGenerator : MonoBehaviour
     InCheck(ref ChessBoard pos, int own)
     {
         int emy = own ^ 8;
-        int k_sq = pos.IndexNo(pos.King(own));
+        int kSq = pos.IndexNo(pos.King(own));
 
         ulong erq = pos.Queen(emy) | pos.Rook(emy);
         ulong ebq = pos.Queen(emy) | pos.Bishop(emy);
 
         return (
-            (RookLegalMoves(ref pos, k_sq) & erq)
-          | (BishopLegalMoves(ref pos, k_sq) & ebq)
-          | (KnightLegalMoves(ref pos, k_sq) & pos.Knight(emy))
-          | (lt.PawnCaptureMasks[own / 8][k_sq] & pos.Pawn(emy))
+            (RookLegalMoves(ref pos, kSq) & erq)
+          | (BishopLegalMoves(ref pos, kSq) & ebq)
+          | (KnightLegalMoves(ref pos, kSq) & pos.Knight(emy))
+          | (lt.PawnCaptureMasks[own / 8][kSq] & pos.Pawn(emy))
         ) != 0;
     }
 
     private void
-    AddToMovelist(ref ChessBoard pos, ref MoveList my_moves,
-        int ip, ulong endSquares, ulong pinned_squares)
+    AddToMovelist(ref ChessBoard pos, ref MoveList myMoves,
+        int ip, ulong endSquares, ulong pinnedSquares)
     {
         int pt = pos.board[ip] & 7;
-        ulong ip_bit = 1UL << ip;
+        ulong ipBit = 1UL << ip;
 
         while (endSquares != 0)
         {
@@ -64,16 +64,16 @@ public class MoveGenerator : MonoBehaviour
             int move = MoveCodec.Encode(ref pos, ip, fp);
             endSquares &= endSquares - 1;
 
-            if (((ip_bit & pinned_squares) != 0) && !IsLegalMove(pos, move))
+            if (((ipBit & pinnedSquares) != 0) && !IsLegalMove(pos, move))
                 continue;
 
-            my_moves.Add(move);
+            myMoves.Add(move);
 
             if ((pt == 1) && ((1UL << fp) & Bitboards.Rank18) != 0)
             {
-                my_moves.Add(move | 0xC0000);
-                my_moves.Add(move | 0x80000);
-                my_moves.Add(move | 0x40000);
+                myMoves.Add(move | 0xC0000);
+                myMoves.Add(move | 0x80000);
+                myMoves.Add(move | 0x40000);
             }
         }
     }
@@ -84,20 +84,20 @@ public class MoveGenerator : MonoBehaviour
         if (move == 0)
             return "null";
         
-        string IndexToRow(int __x) => ((char)(__x + 49)).ToString();
-        string IndexToCol(int __y) => ((char)(__y + 97)).ToString();
-        string IndexToSquare(int __x, int __y) => IndexToCol(__y) + IndexToRow(__x);
+        string IndexToRow(int x) => ((char)(x + 49)).ToString();
+        string IndexToCol(int y) => ((char)(y + 97)).ToString();
+        string IndexToSquare(int x, int y) => IndexToCol(y) + IndexToRow(x);
 
-        char[] piece_names = {'B', 'N', 'R', 'Q'};
+        char[] pieceNames = {'B', 'N', 'R', 'Q'};
 
         int ip = move & 63;
         int fp = (move >> 6) & 63;
 
-        int ip_col = ip & 7;
-        int fp_col = fp & 7;
+        int ipCol = ip & 7;
+        int fpCol = fp & 7;
 
-        int ip_row = (ip - ip_col) >> 3;
-        int fp_row = (fp - fp_col) >> 3;
+        int ipRow = (ip - ipCol) >> 3;
+        int fpRow = (fp - fpCol) >> 3;
 
         int ipt = ((move >> 12) & 7);
         int fpt = ((move >> 15) & 7);
@@ -105,34 +105,34 @@ public class MoveGenerator : MonoBehaviour
         ulong apieces = pos.All();
 
         pos.MakeMove(move);
-        string gives_check = InCheck(ref pos, pos.Own()) ? "+" : "";
+        string givesCheck = InCheck(ref pos, pos.Own()) ? "+" : "";
         pos.UnmakeMove();
 
         string captures = "";
 
         if (ipt == 1)
         {
-            string pawns_captures =
-                Mathf.Abs(ip_col - fp_col) == 1
-                ? (IndexToCol(ip_col) + "x") : "";
+            string pawnsCaptures =
+                Mathf.Abs(ipCol - fpCol) == 1
+                ? (IndexToCol(ipCol) + "x") : "";
 
-            string dest_square = IndexToSquare(fp_row, fp_col);
+            string destSquare = IndexToSquare(fpRow, fpCol);
 
             if (((1UL << fp) & Bitboards.Rank18) == 0)
-                return pawns_captures + dest_square + gives_check;
+                return pawnsCaptures + destSquare + givesCheck;
             
             int ppt = (move >> 18) & 3;
-            string promoted_piece = "=" + piece_names[ppt];
+            string promotedPiece = "=" + pieceNames[ppt];
 
-            return pawns_captures + dest_square + promoted_piece + gives_check;
+            return pawnsCaptures + destSquare + promotedPiece + givesCheck;
         }
         if (ipt == 6)
         {
-            if (Mathf.Abs(ip_col - fp_col) == 2)
-                return (((1UL << fp) & Bitboards.FileG) != 0 ? "O-O" : "O-O-O") + gives_check;
+            if (Mathf.Abs(ipCol - fpCol) == 2)
+                return (((1UL << fp) & Bitboards.FileG) != 0 ? "O-O" : "O-O-O") + givesCheck;
 
             captures = (fpt != 0) ? "x" : "";
-            return "K" + captures + IndexToSquare(fp_row, fp_col) + gives_check;
+            return "K" + captures + IndexToSquare(fpRow, fpCol) + givesCheck;
         }
 
         int ipts = pos.Own() + ipt;
@@ -149,29 +149,29 @@ public class MoveGenerator : MonoBehaviour
             pieces =  (QueenAttackedSquares(ref pos, fp, apieces) & pos.pieces[ipts]) ^ ipos;
 
         captures = (fpt != 0) ? "x" : "";
-        string end_part = captures + IndexToSquare(fp_row, fp_col) + gives_check;
+        string endPart = captures + IndexToSquare(fpRow, fpCol) + givesCheck;
 
         if (pieces == 0)
-            return piece_names[ipt - 2] + end_part;
+            return pieceNames[ipt - 2] + endPart;
 
         bool row = true, col = true;
 
         while (pieces > 0)
         {
-            int __pos = pos.LsbIdx(pieces);
+            int sq = pos.LsbIdx(pieces);
             pieces &= pieces - 1;
 
-            int __pos_col = __pos & 7;
-            int __pos_row = (__pos - __pos_col) >> 3;
+            int sqCol = sq & 7;
+            int sqRow = (sq - sqCol) >> 3;
 
-            if (__pos_col == ip_col) col = false;
-            if (__pos_row == ip_row) row = false;
+            if (sqCol == ipCol) col = false;
+            if (sqRow == ipRow) row = false;
         }
 
-        if (col) return piece_names[ipt - 2] + IndexToCol(ip_col) + end_part;
-        if (row) return piece_names[ipt - 2] + IndexToRow(ip_row) + end_part;
+        if (col) return pieceNames[ipt - 2] + IndexToCol(ipCol) + endPart;
+        if (row) return pieceNames[ipt - 2] + IndexToRow(ipRow) + endPart;
 
-        return piece_names[ipt - 2] + IndexToSquare(ip_row, ip_col) + end_part;
+        return pieceNames[ipt - 2] + IndexToSquare(ipRow, ipCol) + endPart;
     }
 
     #endregion
@@ -271,24 +271,24 @@ public class MoveGenerator : MonoBehaviour
         int eps  = pos.csep & 127;
         int sq2  = sq + 8 * (2 * side - 1);
 
-        ulong free_sq = ~pos.All();
-        ulong capt_sq = pos.All((side ^ 1) * 8);
+        ulong freeSq = ~pos.All();
+        ulong captSq = pos.All((side ^ 1) * 8);
 
         ulong Rank2 = (side == 1) ? 65280UL : 71776119061217280UL;
-        ulong dest_squares = 0;
+        ulong destSquares = 0;
 
-        dest_squares |= lt.PawnMasks[side][sq] & free_sq;
-        dest_squares |= lt.PawnCaptureMasks[side][sq] & capt_sq;
+        destSquares |= lt.PawnMasks[side][sq] & freeSq;
+        destSquares |= lt.PawnCaptureMasks[side][sq] & captSq;
 
         // Double pawn push
-        if ((((1UL << sq) & Rank2) != 0) && (((1UL << sq2) & free_sq) != 0))
-            dest_squares |= lt.PawnMasks[side][sq2] & free_sq;
+        if ((((1UL << sq) & Rank2) != 0) && (((1UL << sq2) & freeSq) != 0))
+            destSquares |= lt.PawnMasks[side][sq2] & freeSq;
 
         // EnPassant Move
         if ((eps != 64) && (((1UL << eps) & lt.PawnCaptureMasks[side][sq]) != 0) && EnpassantRecheck(sq, ref pos))
-            dest_squares |= 1UL << eps;
+            destSquares |= 1UL << eps;
 
-        return dest_squares;
+        return destSquares;
     }
 
     private ulong
@@ -329,7 +329,7 @@ public class MoveGenerator : MonoBehaviour
         int emy = pos.Emy();
 
         int kp = pos.IndexNo(pos.King(own));
-        ulong _Ap = pos.All();
+        ulong allPieces = pos.All();
         ulong erq = pos.Queen(emy) | pos.Rook(emy);
         ulong ebq = pos.Queen(emy) | pos.Bishop(emy);
 
@@ -353,17 +353,17 @@ public class MoveGenerator : MonoBehaviour
     }
 
     private ulong
-    GeneratePinnedSquare(System.Func<ulong, ulong> __f, ref ChessBoard pos, ulong emyPiece, ulong[] table)
+    GeneratePinnedSquare(System.Func<ulong, ulong> pick, ref ChessBoard pos, ulong emyPiece, ulong[] table)
     {
         int own = pos.Own();
         int kpos = pos.IndexNo(pos.King(own));
-        ulong my_pieces = pos.All(own);
+        ulong myPieces = pos.All(own);
         ulong list = table[kpos] & pos.All();
 
         if (pos.PopCount(list) < 2) return 0;
         
-        ulong piece1 = __f(list);
-        ulong piece2 = __f(list ^ piece1);
+        ulong piece1 = pick(list);
+        ulong piece2 = pick(list ^ piece1);
 
         if (((piece1 & pos.All(own)) != 0) && ((piece2 & emyPiece) != 0))
             return piece1;
@@ -372,30 +372,30 @@ public class MoveGenerator : MonoBehaviour
     }
 
     public void
-    GeneratePieceMoves(ref ChessBoard pos, ref MoveList my_moves, ulong KA, ulong valid_squares)
+    GeneratePieceMoves(ref ChessBoard pos, ref MoveList myMoves, ulong KA, ulong validSquares)
     {
-        valid_squares = KA * valid_squares + (1 - KA) * ~(0UL);
+        validSquares = KA * validSquares + (1 - KA) * ~(0UL);
         
-        ulong pinned_squares = PinnedSquares(ref pos);
-        ulong my_pieces = pos.All(pos.Own()) ^ pos.King(pos.Own());
+        ulong pinnedSquares = PinnedSquares(ref pos);
+        ulong myPieces = pos.All(pos.Own()) ^ pos.King(pos.Own());
 
-        while (my_pieces != 0)
+        while (myPieces != 0)
         {
-            int sq = pos.LsbIdx(my_pieces);
+            int sq = pos.LsbIdx(myPieces);
             int pt = pos.board[sq] & 7;
-            my_pieces &= my_pieces - 1;
+            myPieces &= myPieces - 1;
 
-            ulong dest_squares = 0;
+            ulong destSquares = 0;
 
-            if (pt == 1) dest_squares =   PawnLegalMoves(ref pos, sq);
-            if (pt == 2) dest_squares = BishopLegalMoves(ref pos, sq);
-            if (pt == 3) dest_squares = KnightLegalMoves(ref pos, sq);
-            if (pt == 4) dest_squares =   RookLegalMoves(ref pos, sq);
-            if (pt == 5) dest_squares =  QueenLegalMoves(ref pos, sq);
+            if (pt == 1) destSquares =   PawnLegalMoves(ref pos, sq);
+            if (pt == 2) destSquares = BishopLegalMoves(ref pos, sq);
+            if (pt == 3) destSquares = KnightLegalMoves(ref pos, sq);
+            if (pt == 4) destSquares =   RookLegalMoves(ref pos, sq);
+            if (pt == 5) destSquares =  QueenLegalMoves(ref pos, sq);
 
-            dest_squares &= valid_squares;
+            destSquares &= validSquares;
 
-            AddToMovelist(ref pos, ref my_moves, sq, dest_squares, pinned_squares);
+            AddToMovelist(ref pos, ref myMoves, sq, destSquares, pinnedSquares);
         }
     }
 
@@ -406,15 +406,15 @@ public class MoveGenerator : MonoBehaviour
         int own = pos.Own();
         int emy = pos.Emy();
         ulong apieces = (pos.All(own) | pos.All(emy)) ^ pos.King(own);
-        ulong emy_pieces = pos.All(emy);
+        ulong emyPieces = pos.All(emy);
 
         res |= PawnsAttackedSquares(ref pos, emy) | KingAttackedSquares(ref pos, emy);
 
-        while (emy_pieces != 0)
+        while (emyPieces != 0)
         {
-            int sq = pos.LsbIdx(emy_pieces);
+            int sq = pos.LsbIdx(emyPieces);
             int pt = pos.board[sq] & 7;
-            emy_pieces &= emy_pieces - 1;
+            emyPieces &= emyPieces - 1;
 
             if (pt == 2)
                 res |= BishopAttackedSquares(ref pos, sq, apieces);
@@ -430,116 +430,116 @@ public class MoveGenerator : MonoBehaviour
 
 
     private (int, ulong)
-    KingAttackers(ref ChessBoard pos, ulong attacked_squares)
+    KingAttackers(ref ChessBoard pos, ulong attackedSquares)
     {
         int own = pos.Own();
         int emy = pos.Emy();
-        int k_sq = pos.IndexNo(pos.King(own));
+        int kSq = pos.IndexNo(pos.King(own));
 
-        if ((attacked_squares != 0) && (pos.King(own) & attacked_squares) == 0)
-            return (0, attacked_squares);
+        if ((attackedSquares != 0) && (pos.King(own) & attackedSquares) == 0)
+            return (0, attackedSquares);
 
         ulong apieces = pos.All();
         int attackers = 0;
-        ulong attack_mask = 0;
+        ulong attackMask = 0;
 
-        ulong pieces = RookLegalMoves(ref pos, k_sq) & (pos.Queen(emy) | pos.Rook(emy));
+        ulong pieces = RookLegalMoves(ref pos, kSq) & (pos.Queen(emy) | pos.Rook(emy));
         while (pieces != 0)
         {
-            int p_sq = pos.LsbIdx(pieces);
-            attack_mask |= (RookLegalMoves(ref pos, k_sq)
-                         &  RookLegalMoves(ref pos, p_sq) ) | (1UL << p_sq);
+            int pSq = pos.LsbIdx(pieces);
+            attackMask |= (RookLegalMoves(ref pos, kSq)
+                         &  RookLegalMoves(ref pos, pSq) ) | (1UL << pSq);
 
             attackers++;
             pieces &= pieces - 1;
         }
 
-        pieces = BishopLegalMoves(ref pos, k_sq) & (pos.Queen(emy) | pos.Bishop(emy));
+        pieces = BishopLegalMoves(ref pos, kSq) & (pos.Queen(emy) | pos.Bishop(emy));
         while (pieces != 0)
         {
-            int p_sq = pos.LsbIdx(pieces);
-            attack_mask |= (BishopLegalMoves(ref pos, k_sq)
-                         &  BishopLegalMoves(ref pos, p_sq) ) | (1UL << p_sq);
+            int pSq = pos.LsbIdx(pieces);
+            attackMask |= (BishopLegalMoves(ref pos, kSq)
+                         &  BishopLegalMoves(ref pos, pSq) ) | (1UL << pSq);
 
             attackers++;
             pieces &= pieces - 1;
         }
 
-        pieces = KnightLegalMoves(ref pos, k_sq) & pos.Knight(emy);
+        pieces = KnightLegalMoves(ref pos, kSq) & pos.Knight(emy);
         while (pieces != 0)
         {
-            int p_sq = pos.LsbIdx(pieces);
-            attack_mask |= (KnightLegalMoves(ref pos, k_sq)
-                         &  KnightLegalMoves(ref pos, p_sq) ) | (1UL << p_sq);
+            int pSq = pos.LsbIdx(pieces);
+            attackMask |= (KnightLegalMoves(ref pos, kSq)
+                         &  KnightLegalMoves(ref pos, pSq) ) | (1UL << pSq);
 
             attackers++;
             pieces &= pieces - 1;
         }
 
-        ulong pawn_squares = lt.PawnCaptureMasks[own / 8][k_sq] & pos.Pawn(emy);
+        ulong pawnSquares = lt.PawnCaptureMasks[own / 8][kSq] & pos.Pawn(emy);
         
-        if (pawn_squares != 0)
+        if (pawnSquares != 0)
             attackers++;
-        attack_mask |= pawn_squares;
+        attackMask |= pawnSquares;
 
-        return (attackers, attack_mask);
+        return (attackers, attackMask);
     }
 
 
     private void
-    GenerateKingMoves(ref ChessBoard pos, ref MoveList my_moves, ulong attacked_sq)
+    GenerateKingMoves(ref ChessBoard pos, ref MoveList myMoves, ulong attackedSq)
     {
         int own = pos.Own();
-        int k_sq = pos.IndexNo(pos.King(own));
-        ulong k_bit = 1UL << k_sq;
+        int kSq = pos.IndexNo(pos.King(own));
+        ulong kBit = 1UL << kSq;
 
-        ulong KingMask = lt.KingMasks[k_sq];
+        ulong KingMask = lt.KingMasks[kSq];
         ulong apieces = pos.All();
 
-        ulong end_squares = KingMask & (~(pos.All(own) | attacked_sq));
+        ulong endSquares = KingMask & (~(pos.All(own) | attackedSq));
 
-        AddToMovelist(ref pos, ref my_moves, k_sq, end_squares, 0);
+        AddToMovelist(ref pos, ref myMoves, kSq, endSquares, 0);
 
-        if (((pos.csep & 1920) == 0) || ((k_bit & attacked_sq) != 0)) return;
+        if (((pos.csep & 1920) == 0) || ((kBit & attackedSq) != 0)) return;
 
-        ulong covered_squares = apieces | attacked_sq;
+        ulong coveredSquares = apieces | attackedSq;
 
         int shift      = 56 * (pos.color ^ 1);
-        ulong l_mid_sq = 2UL << shift;
-        ulong r_sq     = 96UL << shift;
-        ulong l_sq     = 12UL << shift;
+        ulong lMidSq = 2UL << shift;
+        ulong rSq     = 96UL << shift;
+        ulong lSq     = 12UL << shift;
 
-        int king_side  = 256 << (2 * pos.color);
-        int queen_side = 128 << (2 * pos.color);
+        int kingSide  = 256 << (2 * pos.color);
+        int queenSide = 128 << (2 * pos.color);
 
-        end_squares = 0;
+        endSquares = 0;
 
-        // Can castle king_side  and no pieces are in-between
-        if (((pos.csep & king_side) != 0) && ((r_sq & covered_squares) == 0))
-            end_squares |= 1UL << (6 + shift);
+        // Can castle kingSide  and no pieces are in-between
+        if (((pos.csep & kingSide) != 0) && ((rSq & coveredSquares) == 0))
+            endSquares |= 1UL << (6 + shift);
 
-        // Can castle queen_side and no pieces are in-between
-        if (((pos.csep & queen_side) != 0) && ((apieces & l_mid_sq) == 0) && ((l_sq & covered_squares) == 0))
-            end_squares |= 1UL << (2 + shift);
+        // Can castle queenSide and no pieces are in-between
+        if (((pos.csep & queenSide) != 0) && ((apieces & lMidSq) == 0) && ((lSq & coveredSquares) == 0))
+            endSquares |= 1UL << (2 + shift);
 
-        AddToMovelist(ref pos, ref my_moves, k_sq, end_squares, 0);
+        AddToMovelist(ref pos, ref myMoves, kSq, endSquares, 0);
     }
 
 
     public MoveList
     GenerateMoves(ref ChessBoard position)
     {
-        MoveList my_moves = new MoveList(position.color);
+        MoveList myMoves = new MoveList(position.color);
 
-        ulong attacked_squares = GenerateAttackedSquares(ref position);
-        var (attackers, valid_squares) = KingAttackers(ref position, attacked_squares);
-        my_moves.KingAttackers = attackers;
+        ulong attackedSquares = GenerateAttackedSquares(ref position);
+        var (attackers, validSquares) = KingAttackers(ref position, attackedSquares);
+        myMoves.KingAttackers = attackers;
 
         if (attackers < 2)
-            GeneratePieceMoves(ref position, ref my_moves, (ulong)attackers, valid_squares);
+            GeneratePieceMoves(ref position, ref myMoves, (ulong)attackers, validSquares);
         
-        GenerateKingMoves(ref position, ref my_moves, attacked_squares);
-        return my_moves;
+        GenerateKingMoves(ref position, ref myMoves, attackedSquares);
+        return myMoves;
     }
 
 

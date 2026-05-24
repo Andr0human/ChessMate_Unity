@@ -4,46 +4,46 @@ using System.Collections.Generic;
 
 public class MatchData
 {
-    private List< int >             moves;
-    private List<float>             evals;
-    private List<float>         time_left;
-    private List<ulong> occured_positions;
-    private string start_pos_fen;
+    private List< int >            moves;
+    private List<float>            evals;
+    private List<float>         timeLeft;
+    private List<ulong> occurredPositions;
+    private string startPosFen;
 
     public int BookMoveCount { get; set; } = 0;
 
-    bool first_move;
+    bool firstMove;
 
     public MatchData(string fen)
     {
         moves = new List<int>();
         evals = new List<float>();
-        time_left = new List<float>();
-        occured_positions = new List<ulong>();
-        first_move = true;
-        start_pos_fen = fen;
+        timeLeft = new List<float>();
+        occurredPositions = new List<ulong>();
+        firstMove = true;
+        startPosFen = fen;
     }
 
     public void
-    Add(int move, float eval, float r_time, ulong key)
+    Add(int move, float eval, float remainingTime, ulong key)
     {
         moves.Add(move);
         evals.Add(eval);
-        time_left.Add(r_time);
+        timeLeft.Add(remainingTime);
 
         // If moved piece is a pawn or there is a captured piece
         if ((((move >> 12) & 7) == 1) || (((move >> 15) & 7) != 0))
-            occured_positions.Clear();
+            occurredPositions.Clear();
 
-        occured_positions.Add(key);
+        occurredPositions.Add(key);
     }
 
     public int
     LastPlayedMove()
     {
-        if (first_move)
+        if (firstMove)
         {
-            first_move = false;
+            firstMove = false;
             return 0;
         }
         return (moves.Count > 0) ? (moves[moves.Count - 1]) : (0);
@@ -51,18 +51,18 @@ public class MatchData
 
     public bool
     FiftyMoveRuleDraw()
-    { return occured_positions.Count > 100; }
+    { return occurredPositions.Count > 100; }
 
     public bool
     ThreeMoveRepetitionDraw()
     {
-        if (occured_positions.Count < 3)
+        if (occurredPositions.Count < 3)
             return false;
-        ulong last_key = occured_positions[occured_positions.Count - 1];
+        ulong lastKey = occurredPositions[occurredPositions.Count - 1];
         int count = 0;
 
-        foreach (var key in occured_positions)
-            if (key == last_key) count++;
+        foreach (var key in occurredPositions)
+            if (key == lastKey) count++;
 
         return count >= 3;
     }
@@ -73,10 +73,10 @@ public class MatchData
         int count = 0;
         for (int i = 1; i < evals.Count; i += 2)
         {
-            float eval_diff = Mathf.Abs(evals[i] - evals[i - 1]);
-            float max_eval = Mathf.Max(Mathf.Abs(evals[i]), Mathf.Abs(evals[i - 1]));
+            float evalDiff = Mathf.Abs(evals[i] - evals[i - 1]);
+            float maxEval = Mathf.Max(Mathf.Abs(evals[i]), Mathf.Abs(evals[i - 1]));
 
-            if ((eval_diff >= margin) && (max_eval <= 12f)) count++;
+            if ((evalDiff >= margin) && (maxEval <= 12f)) count++;
         }
         return count;
     }
@@ -92,7 +92,7 @@ public class MatchData
     }
 
     public bool
-    DrawnPositionForContinuousMoves(float draw_margin, int length)
+    DrawnPositionForContinuousMoves(float drawMargin, int length)
     {
         if (evals.Count < length)
             return false;
@@ -100,7 +100,7 @@ public class MatchData
         int count = 0;
         foreach (float eval in evals)
         {
-            count = (Mathf.Abs(eval) < draw_margin) ? (count + 1) : (0);
+            count = (Mathf.Abs(eval) < drawMargin) ? (count + 1) : (0);
 
             if (count >= length)
                 return true;
@@ -116,11 +116,11 @@ public class MatchData
     GetMoveList(MoveGenerator mg)
     {
         var sb = new System.Text.StringBuilder();
-        ChessBoard board = new ChessBoard(start_pos_fen);
+        ChessBoard board = new ChessBoard(startPosFen);
 
         // Detect starting side + fullmove number from FEN so the move-pair
         // layout works even from a non-standard start position.
-        string[] fenParts = start_pos_fen.Split(' ');
+        string[] fenParts = startPosFen.Split(' ');
         bool whiteFirst = fenParts.Length < 2 || fenParts[1] == "w";
         int startFullMove = 1;
         if (fenParts.Length >= 6) int.TryParse(fenParts[5], out startFullMove);
@@ -200,5 +200,5 @@ public class MatchData
     }
 
     public string StartFen()
-    { return start_pos_fen; }
+    { return startPosFen; }
 }

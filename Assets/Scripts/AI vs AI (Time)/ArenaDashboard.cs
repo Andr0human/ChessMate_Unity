@@ -80,18 +80,18 @@ public class ArenaDashboard : MonoBehaviour
     SetTimeFormat()
     {
         string[] values = TimeControlField.text.Split();
-        float time_per_side = 60, increment = 0;
+        float timePerSide = 60, increment = 0;
 
         if (values.Length == 0)
             return;
 
         if (values.Length >= 1)
-            time_per_side = float.Parse(RemoveNonAlphaNumeric( values[0] ));
+            timePerSide = float.Parse(RemoveNonAlphaNumeric( values[0] ));
 
         if (values.Length >= 2)
             increment = float.Parse(RemoveNonAlphaNumeric( values[1] ));
 
-        ar.FixedTimePerGame = time_per_side;
+        ar.FixedTimePerGame = timePerSide;
         ar.IncrementPerGame = increment;
     }
 

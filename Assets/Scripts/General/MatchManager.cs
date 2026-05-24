@@ -77,15 +77,15 @@ public class MatchManager : MonoBehaviour
         else
         {
             Data = new MatchData(startFen);
-            List<int> opening_line = ob.ExtractLine(opening);
-            float time_left = tmr.AllotedTimePerSide;
+            List<int> openingLine = ob.ExtractLine(opening);
+            float timeLeft = tmr.AllotedTimePerSide;
 
-            // Play all moves of opening_line
-            foreach (int move in opening_line)
+            // Play all moves of the opening line
+            foreach (int move in openingLine)
             {
                 ulong prevHash = BoardPosition.hashvalue;
                 BoardPosition.MakeMove(move);
-                Data.Add(move, 0, time_left, prevHash);
+                Data.Add(move, 0, timeLeft, prevHash);
 
                 bh.Recreate(ref BoardPosition);
                 yield return new WaitForSeconds(0.1f);
@@ -93,7 +93,7 @@ public class MatchManager : MonoBehaviour
                 Side2Move ^= 1;
             }
 
-            Data.BookMoveCount = opening_line.Count;
+            Data.BookMoveCount = openingLine.Count;
         }
     }
 
@@ -385,17 +385,17 @@ public class MatchManager : MonoBehaviour
     private int
     PredictionCall()
     {
-        var (__x, __y) = Data.LastEvalPair();
+        var (prevEval, lastEval) = Data.LastEvalPair();
 
         // Both bots thinks white is winning
-        if (Mathf.Min(__x, __y) >  AdjournWinMargin)
+        if (Mathf.Min(prevEval, lastEval) >  AdjournWinMargin)
             return 1;
-        
+
         // Both bots thinks black is winning
-        if (Mathf.Max(__x, __y) < -AdjournWinMargin)             
+        if (Mathf.Max(prevEval, lastEval) < -AdjournWinMargin)
             return -1;
 
-        // If position is draw for last __x moves
+        // If position is drawn for the last N moves
         if (Data.DrawnPositionForContinuousMoves(0.25f, 60))
             return 2;
 
