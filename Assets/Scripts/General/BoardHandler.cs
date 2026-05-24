@@ -24,9 +24,10 @@ public class BoardHandler : MonoBehaviour
         int[] arr = new int[64];
         for (int i = 0; i < 64; i++) arr[i] = i;
 
-        for (int i = 0; i < 64; i++)
+        // Fisher-Yates shuffle (unbiased) — randomizes tile spawn order.
+        for (int i = 63; i > 0; i--)
         {
-            int j = Random.Range(100, 1000) % (i + 1);
+            int j = Random.Range(0, i + 1);
             int tmp = arr[i];
             arr[i] = arr[j];
             arr[j] = tmp;

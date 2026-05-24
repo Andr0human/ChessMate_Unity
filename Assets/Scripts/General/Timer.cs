@@ -41,7 +41,7 @@ public class Timer : MonoBehaviour
         if (Side2Tick >= 2)
             return;
 
-        ChessClocks[Side2Tick] -= 1f * Time.deltaTime;
+        ChessClocks[Side2Tick] -= Time.deltaTime;
 
         TextColorChange(ref TimeInText[0], ChessClocks[0]);
         TextColorChange(ref TimeInText[1], ChessClocks[1]);
