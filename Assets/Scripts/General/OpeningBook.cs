@@ -147,7 +147,7 @@ public class OpeningBook : MonoBehaviour
         ulong key = __pos.GenerateHashKey();
         List<int> moves = Book[key];
 
-        int random_index = UnityEngine.Random.Range(0, moves.Count - 1);
+        int random_index = UnityEngine.Random.Range(0, moves.Count);
         return moves[random_index];
     }
 

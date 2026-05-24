@@ -88,7 +88,10 @@ public class ChessEngine : IPlayer
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(__search_log_path));
-                SearchLog = new StreamWriter(__search_log_path) { AutoFlush = true };
+                // No AutoFlush: lines buffer in memory and hit disk in batches
+                // instead of one synchronous write per `info` line. Stop()'s
+                // Dispose() flushes the tail at game end, so nothing is lost.
+                SearchLog = new StreamWriter(__search_log_path);
             }
             catch
             {
