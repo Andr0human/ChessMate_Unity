@@ -8,7 +8,14 @@ public class ChessBoard
     public ulong[]   pieces;
     private  int[] bitIndex;
 
-    // csep -> castling states + en-passant squares
+    // csep packs castling rights + the en-passant square into one int:
+    //   bits 0-6  en-passant square (0..63); value NoEp = none
+    //   bits 7-10 castling rights (q, k, Q, K)
+    public const int EpMask     = 127;   // bits 0-6
+    public const int NoEp       = 64;    // ep value meaning "no en-passant"
+    public const int CastleMask = 1920;  // bits 7-10
+    public const int CsepMask   = 2047;  // full 11-bit field
+
     public int color, csep;
     public int halfmove, fullmove;
 
@@ -112,7 +119,8 @@ public class ChessBoard
             else if (k == 'q') csep |= 128;
         }
         
-        if (elems[3][0] == '-') csep |= 64;
+        if (elems[3][0] == '-') csep |= NoEp;
+        // ep target square: rank 6 (white to move) or rank 3 (black) + file
         else csep |= 28 + ((2 * color - 1) * 12) + (elems[3][0] - 'a');
         
         halfmove = int.Parse(elems[4]);
@@ -156,11 +164,11 @@ public class ChessBoard
         if ((csep &  512) != 0) generatedFen += "Q";
         if ((csep &  256) != 0) generatedFen += "k";
         if ((csep &  128) != 0) generatedFen += "q";
-        if ((csep & 1920) == 0) generatedFen += "-";
+        if ((csep & CastleMask) == 0) generatedFen += "-";
 
         generatedFen += ' ';
 
-        if ((csep & 64) != 0)
+        if ((csep & NoEp) != 0)
             generatedFen += "- ";
         else
         {
@@ -180,8 +188,8 @@ public class ChessBoard
         if (color == 0)
             key ^= TT.HashIndex[0];
 
-        if ((csep & 127) != 64)
-            key ^= TT.HashIndex[(csep & 127) + 1];
+        if ((csep & EpMask) != NoEp)
+            key ^= TT.HashIndex[(csep & EpMask) + 1];
 
         key ^= TT.HashIndex[(csep >> 7) + TT.CastleBase];
 
@@ -274,7 +282,7 @@ public class ChessBoard
         ulong ipos = 1UL << ip;
         ulong fpos = 1UL << fp;
 
-        int ep = csep & 127;
+        int ep = csep & EpMask;
         int own = Own();
         int emy = Emy();
 
@@ -285,10 +293,10 @@ public class ChessBoard
         board[ip] = 0;
         board[fp] = ipt;
 
-        if (ep != 64)
+        if (ep != NoEp)
             hashvalue ^= TT.HashIndex[ep + 1];
-        
-        csep = (csep & 1920) ^ 64;
+
+        csep = (csep & CastleMask) ^ NoEp;
 
         // If rook captured
         MakeMoveCornerRook(ipt & 7, ip);
@@ -302,13 +310,13 @@ public class ChessBoard
             // Double pawn push
             if (Mathf.Abs(ip - fp) == 16)
             {
-                csep = (csep & 1920) | ((ip + fp) / 2);
+                csep = (csep & CastleMask) | ((ip + fp) / 2);
 
                 pieces[own + 1] ^= ipos ^ fpos;
                 pieces[own + 7] ^= ipos ^ fpos;
 
                 // Add current enpassant-state to hashvalue
-                hashvalue ^= TT.HashIndex[1 + (csep & 127)] ^ TT.HashIndex[0];
+                hashvalue ^= TT.HashIndex[1 + (csep & EpMask)] ^ TT.HashIndex[0];
                 hashvalue ^= TT.HashUpdate(own + 1, ip) ^ TT.HashUpdate(own + 1, fp);
                 
                 color ^= 1;
@@ -367,7 +375,8 @@ public class ChessBoard
         if ((ipt & 7) == 6)
         {
             int oldCsep = csep;
-            int filter = 2047 ^ (384 << (color * 2));
+            // 384 = both castle bits for one side; shift selects the moving side
+            int filter = CsepMask ^ (384 << (color * 2));
             csep &= filter;
 
             hashvalue ^= TT.HashIndex[(oldCsep >> 7) + TT.CastleBase];
@@ -406,7 +415,7 @@ public class ChessBoard
 
         int ip = move & 63;
         int fp = (move >> 6) & 63;
-        int ep = csep & 127;
+        int ep = csep & EpMask;
 
         ulong ipos = 1UL << ip;
         ulong fpos = 1UL << fp;
@@ -503,7 +512,7 @@ public class ChessBoard
             int oldCsep = csep;
             int y = (square + 1) >> 3;
             int z  = y + (y < 7 ? 9 : 0);
-            csep &= 2047 ^ (1 << z);
+            csep &= CsepMask ^ (1 << z);
 
             hashvalue ^= TT.HashIndex[(oldCsep >> 7) + TT.CastleBase];
             hashvalue ^= TT.HashIndex[(csep >> 7) + TT.CastleBase];

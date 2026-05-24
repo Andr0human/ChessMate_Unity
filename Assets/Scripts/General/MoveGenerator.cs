@@ -248,7 +248,7 @@ public class MoveGenerator : MonoBehaviour
         int emy = pos.Emy();
 
         int kpos = pos.IndexNo(pos.King(own));
-        int eps = pos.csep & 127;
+        int eps = pos.csep & ChessBoard.EpMask;
         ulong erq = pos.Queen(emy) | pos.Rook(emy);
         ulong ebq = pos.Queen(emy) | pos.Bishop(emy);
         ulong Ap  = pos.All() ^ ((1UL << ip) | (1UL << (eps - 8 * (2 * pos.color - 1))));
@@ -268,7 +268,7 @@ public class MoveGenerator : MonoBehaviour
     PawnLegalMoves(ref ChessBoard pos, int sq)
     {
         int side = pos.color;
-        int eps  = pos.csep & 127;
+        int eps  = pos.csep & ChessBoard.EpMask;
         int sq2  = sq + 8 * (2 * side - 1);
 
         ulong freeSq = ~pos.All();
@@ -285,7 +285,7 @@ public class MoveGenerator : MonoBehaviour
             destSquares |= lt.PawnMasks[side][sq2] & freeSq;
 
         // EnPassant Move
-        if ((eps != 64) && (((1UL << eps) & lt.PawnCaptureMasks[side][sq]) != 0) && EnpassantRecheck(sq, ref pos))
+        if ((eps != ChessBoard.NoEp) && (((1UL << eps) & lt.PawnCaptureMasks[side][sq]) != 0) && EnpassantRecheck(sq, ref pos))
             destSquares |= 1UL << eps;
 
         return destSquares;
@@ -500,7 +500,7 @@ public class MoveGenerator : MonoBehaviour
 
         AddToMovelist(ref pos, ref myMoves, kSq, endSquares, 0);
 
-        if (((pos.csep & 1920) == 0) || ((kBit & attackedSq) != 0)) return;
+        if (((pos.csep & ChessBoard.CastleMask) == 0) || ((kBit & attackedSq) != 0)) return;
 
         ulong coveredSquares = apieces | attackedSq;
 

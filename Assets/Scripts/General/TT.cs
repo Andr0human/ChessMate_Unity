@@ -3,7 +3,7 @@ public static class TT
     // HashIndex is a Zobrist key table, all keys drawn from xorshift64star().
     // Layout:
     //   [0]                       side-to-move
-    //   [1 .. 65]                 en-passant square (csep & 127, value 0..64)
+    //   [1 .. 65]                 en-passant square (csep & EpMask, value 0..NoEp)
     //   [CastleBase .. +15]       castling rights (csep >> 7, 4 bits)
     //   [PieceBase ..]            piece-square: pos + 64 * (piece + 6 * color)
     public const int HashCount  = 860;  // total keys
