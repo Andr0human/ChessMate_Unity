@@ -12,8 +12,6 @@ using System.Text;
 //   bit  20    : moving color (1 = white, 0 = black)
 public static class MoveCodec
 {
-    private const ulong Rank18 = 0xFF000000000000FFUL;
-
     // Packs a move from board square indices, reading moving/captured piece
     // type and color from the current position. promo is the promotion piece
     // (0=B, 1=N, 2=R, 3=Q); leave at 0 for non-promotions. Single source of
@@ -50,7 +48,7 @@ public static class MoveCodec
         sb.Append((char)('1' + fpRow));
 
         int pt = (packedMove >> 12) & 7;
-        if (pt == 1 && ((1UL << fp) & Rank18) != 0)
+        if (pt == 1 && ((1UL << fp) & Bitboards.Rank18) != 0)
         {
             int ppt = (packedMove >> 18) & 3;
             // 0=B, 1=N, 2=R, 3=Q

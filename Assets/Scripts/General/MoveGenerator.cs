@@ -55,7 +55,6 @@ public class MoveGenerator : MonoBehaviour
     AddToMovelist(ref ChessBoard pos, ref MoveList my_moves,
         int ip, ulong endSquares, ulong pinned_squares)
     {
-        ulong Rank18 = 18374686479671623935UL;
         int pt = pos.board[ip] & 7;
         ulong ip_bit = 1UL << ip;
 
@@ -70,7 +69,7 @@ public class MoveGenerator : MonoBehaviour
 
             my_moves.Add(move);
 
-            if ((pt == 1) && ((1UL << fp) & Rank18) != 0)
+            if ((pt == 1) && ((1UL << fp) & Bitboards.Rank18) != 0)
             {
                 my_moves.Add(move | 0xC0000);
                 my_moves.Add(move | 0x80000);
@@ -113,14 +112,13 @@ public class MoveGenerator : MonoBehaviour
 
         if (ipt == 1)
         {
-            ulong Rank18 = 18374686479671623935UL;
             string pawns_captures =
                 Mathf.Abs(ip_col - fp_col) == 1
                 ? (IndexToCol(ip_col) + "x") : "";
 
             string dest_square = IndexToSquare(fp_row, fp_col);
 
-            if (((1UL << fp) & Rank18) == 0)
+            if (((1UL << fp) & Bitboards.Rank18) == 0)
                 return pawns_captures + dest_square + gives_check;
             
             int ppt = (move >> 18) & 3;
@@ -130,10 +128,8 @@ public class MoveGenerator : MonoBehaviour
         }
         if (ipt == 6)
         {
-            ulong FileG = 4629771061636907072UL;
-
             if (Mathf.Abs(ip_col - fp_col) == 2)
-                return (((1UL << fp) & FileG) != 0 ? "O-O" : "O-O-O") + gives_check;
+                return (((1UL << fp) & Bitboards.FileG) != 0 ? "O-O" : "O-O-O") + gives_check;
 
             captures = (fpt != 0) ? "x" : "";
             return "K" + captures + IndexToSquare(fp_row, fp_col) + gives_check;

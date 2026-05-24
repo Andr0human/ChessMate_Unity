@@ -69,7 +69,7 @@ public class ChessBoard
         prevHashKeys = new List<ulong>();
 
         for (int sq = 0; sq < 64; sq++)
-            bitIndex[((1UL << sq) * 4220644425418082699UL) >> 57] = sq;
+            bitIndex[((1UL << sq) * Bitboards.DeBruijn64) >> 57] = sq;
     }
 
     public
@@ -183,7 +183,7 @@ public class ChessBoard
         if ((csep & 127) != 64)
             key ^= TT.HashIndex[(csep & 127) + 1];
 
-        key ^= TT.HashIndex[(csep >> 7) + 66];
+        key ^= TT.HashIndex[(csep >> 7) + TT.CastleBase];
 
         for (int sq = 0; sq < 64; sq++)
         {
@@ -243,7 +243,7 @@ public class ChessBoard
     public int
     IndexNo(ulong __x)
     {
-        return bitIndex[(__x * 4220644425418082699UL) >> 57];
+        return bitIndex[(__x * Bitboards.DeBruijn64) >> 57];
     }
 
     public int
@@ -337,7 +337,7 @@ public class ChessBoard
             }
 
             // Promotion
-            if ((fpos & 0xFF000000000000FFUL) != 0)
+            if ((fpos & Bitboards.Rank18) != 0)
             {
                 int new_pt = ((move >> 18) & 3) + 2;
 
@@ -370,8 +370,8 @@ public class ChessBoard
             int filter = 2047 ^ (384 << (color * 2));
             csep &= filter;
 
-            hashvalue ^= TT.HashIndex[(old_csep >> 7) + 66];
-            hashvalue ^= TT.HashIndex[(csep >> 7) + 66];
+            hashvalue ^= TT.HashIndex[(old_csep >> 7) + TT.CastleBase];
+            hashvalue ^= TT.HashIndex[(csep >> 7) + TT.CastleBase];
 
             // Castling
             if (Mathf.Abs(fp - ip) == 2) {
@@ -440,7 +440,7 @@ public class ChessBoard
                 pieces[emy + 7] ^= 1UL << pawn_fp;
                 board[pawn_fp] = emy + 1;
             }
-            else if ((fpos & 0xFF000000000000FFUL) != 0)
+            else if ((fpos & Bitboards.Rank18) != 0)
             {
                 ipt = (((move >> 18) & 3) + 2) + own;
                 pieces[own + 1] ^= fpos;
@@ -505,8 +505,8 @@ public class ChessBoard
             int z  = y + (y < 7 ? 9 : 0);
             csep &= 2047 ^ (1 << z);
 
-            hashvalue ^= TT.HashIndex[(old_csep >> 7) + 66];
-            hashvalue ^= TT.HashIndex[(csep >> 7) + 66];
+            hashvalue ^= TT.HashIndex[(old_csep >> 7) + TT.CastleBase];
+            hashvalue ^= TT.HashIndex[(csep >> 7) + TT.CastleBase];
         }
     }
 
