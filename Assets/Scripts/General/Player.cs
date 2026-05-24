@@ -24,8 +24,8 @@ public interface IPlayer
 
 public class ChessEngine : IPlayer
 {
-    private   OpeningBook _ob;
-    private static Timer _tmr;
+    private OpeningBook _ob;
+    private Timer       _tmr;
 
     private Process _engineProcess;
     private string  _engineName;

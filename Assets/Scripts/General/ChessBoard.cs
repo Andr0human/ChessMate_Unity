@@ -135,29 +135,27 @@ public class ChessBoard
         string generatedFen = "";
         int zeros = 0;
 
-        for (int square = 56; square >= 0; square++)
+        // Ranks 8→1, each file a→h — FEN lists the top rank first.
+        for (int rank = 7; rank >= 0; rank--)
         {
-            if (board[square] == 0)
-                zeros++;
-            else
+            for (int file = 0; file < 8; file++)
             {
-                if (zeros != 0) generatedFen += zeros.ToString();
-                
-                zeros = 0;
-                generatedFen += PieceToChar(board[square]);
+                int piece = board[rank * 8 + file];
+                if (piece == 0)
+                {
+                    zeros++;
+                    continue;
+                }
+
+                if (zeros != 0) { generatedFen += zeros.ToString(); zeros = 0; }
+                generatedFen += PieceToChar(piece);
             }
 
-            if ((square & 7) == 7)
-            {
-                if (zeros != 0) generatedFen += zeros.ToString();
-                
-                zeros = 0;
-                generatedFen += '/';
-                square -= 16;
-            }
+            if (zeros != 0) { generatedFen += zeros.ToString(); zeros = 0; }
+            if (rank > 0) generatedFen += '/';
         }
 
-        generatedFen = generatedFen.Substring(0, generatedFen.Length - 1) + ' ';
+        generatedFen += ' ';
         generatedFen += (color == 1) ? "w " : "b ";
 
         if ((csep & 1024) != 0) generatedFen += "K";

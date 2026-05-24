@@ -18,20 +18,21 @@ public class ArenaScoreSheet
     private int engine1LossOnTime;
     private int engine2LossOnTime;
 
+    // Running win/draw tallies, updated incrementally in Add() so the public
+    // getters are O(1). CalculateWins() still recomputes the white/black
+    // breakdown on demand for the end-of-arena report.
+    private int engine1Wins;
+    private int engine2Wins;
+    private int draws;
+
     private List<int> results;
 
     public string Engine1Name => engine1;
     public string Engine2Name => engine2;
     public int    GamesPlayed => results.Count;
-    public int    Engine1Wins { get { int n = 0; foreach (var r in TallyByPair( 1)) n += r; return n; } }
-    public int    Engine2Wins { get { int n = 0; foreach (var r in TallyByPair(-1)) n += r; return n; } }
-    public int    Draws       { get { int n = 0; foreach (var r in results) if (r == 0) n++; return n; } }
-
-    private int[] TallyByPair(int winValue)
-    {
-        var (a, b) = CalculateWins(winValue);
-        return new int[] { a, b };
-    }
+    public int    Engine1Wins => engine1Wins;
+    public int    Engine2Wins => engine2Wins;
+    public int    Draws       => draws;
 
 
     public ArenaScoreSheet(string name1, string name2,
@@ -46,6 +47,7 @@ public class ArenaScoreSheet
 
         predictionAttempt = predictionSuccess = 0;
         engine1LossOnTime = engine2LossOnTime = 0;
+        engine1Wins = engine2Wins = draws = 0;
         results = new List<int>();
 
         string filePath = Application.streamingAssetsPath + "/arena/results_log.csv";
@@ -57,6 +59,15 @@ public class ArenaScoreSheet
     Add(int result, int prediction, GameEndState state)
     {
         results.Add(result);
+
+        // Attribute the game: odd Count → engine1 played white this game.
+        bool engine1White = (results.Count % 2 == 1);
+        if (result == 0)
+            draws++;
+        else if ((result == 1) == engine1White)
+            engine1Wins++;
+        else
+            engine2Wins++;
 
         if (prediction != 0)
         {

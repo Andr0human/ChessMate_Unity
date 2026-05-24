@@ -7,7 +7,8 @@ public class MatchData
     private List< int >            moves;
     private List<float>            evals;
     private List<float>         timeLeft;
-    private List<ulong> occurredPositions;
+    private List<ulong> repetitionHistory;
+    private int               halfmoveClock;
     private string startPosFen;
 
     public int BookMoveCount { get; set; } = 0;
@@ -19,7 +20,8 @@ public class MatchData
         moves = new List<int>();
         evals = new List<float>();
         timeLeft = new List<float>();
-        occurredPositions = new List<ulong>();
+        repetitionHistory = new List<ulong>();
+        halfmoveClock = 0;
         firstMove = true;
         startPosFen = fen;
     }
@@ -31,11 +33,16 @@ public class MatchData
         evals.Add(eval);
         timeLeft.Add(remainingTime);
 
-        // If moved piece is a pawn or there is a captured piece
+        // A pawn move or capture is irreversible: it resets both the 50-move
+        // clock and the repetition history (no earlier position can recur).
         if ((((move >> 12) & 7) == 1) || (((move >> 15) & 7) != 0))
-            occurredPositions.Clear();
+        {
+            repetitionHistory.Clear();
+            halfmoveClock = 0;
+        }
 
-        occurredPositions.Add(key);
+        repetitionHistory.Add(key);
+        halfmoveClock++;
     }
 
     public int
@@ -51,17 +58,17 @@ public class MatchData
 
     public bool
     FiftyMoveRuleDraw()
-    { return occurredPositions.Count > 100; }
+    { return halfmoveClock > 100; }
 
     public bool
     ThreeMoveRepetitionDraw()
     {
-        if (occurredPositions.Count < 3)
+        if (repetitionHistory.Count < 3)
             return false;
-        ulong lastKey = occurredPositions[occurredPositions.Count - 1];
+        ulong lastKey = repetitionHistory[repetitionHistory.Count - 1];
         int count = 0;
 
-        foreach (var key in occurredPositions)
+        foreach (var key in repetitionHistory)
             if (key == lastKey) count++;
 
         return count >= 3;
