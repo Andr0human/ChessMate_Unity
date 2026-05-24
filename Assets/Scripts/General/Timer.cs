@@ -94,11 +94,7 @@ public class Timer : MonoBehaviour
         if (time_left < 15.0)
             return string.Format("0:{0:00.0}", time_left);
 
-        int sec = (int)time_left;
-        int hr  = sec / 3600;
-        sec %= 3600;
-        int mn  = sec / 60;
-        sec %= 60;
+        var (hr, mn, sec) = TimeFormat.Split(time_left);
 
         if (hr > 0)
             return string.Format("{0}:{1:00}:{2:00}", hr, mn, sec);

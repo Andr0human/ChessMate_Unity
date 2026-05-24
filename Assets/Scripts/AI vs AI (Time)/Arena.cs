@@ -124,14 +124,7 @@ public class Arena : MonoBehaviour
         double avg_game_time = sw.Elapsed.TotalSeconds / CurrentGameNum;
         double est_time = avg_game_time * (GamesToPlay - CurrentGameNum);
 
-        int seconds = (int)est_time;
-        int hours = seconds / 3600;
-        int minutes = (seconds % 3600) / 60;
-        int remainingSeconds = seconds % 60;
-
-        string timeString = $"{hours} hr, {minutes} min, {remainingSeconds} secs";
-
-        if (Hud != null) Hud.SetEta(timeString);
+        if (Hud != null) Hud.SetEta(TimeFormat.Verbose(est_time));
     }
 
 
@@ -317,8 +310,7 @@ public class Arena : MonoBehaviour
         {
             Hud.SetRound(GamesToPlay, GamesToPlay);
 
-            int secs    = (int)sw.Elapsed.TotalSeconds;
-            string time = $"{secs / 3600} hr, {(secs % 3600) / 60} min, {secs % 60} secs";
+            string time = TimeFormat.Verbose(sw.Elapsed.TotalSeconds);
 
             string summary =
                 "Tournament complete\n\n" +
