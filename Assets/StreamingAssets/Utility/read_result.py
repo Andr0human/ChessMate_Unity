@@ -1,5 +1,8 @@
 import csv
+import os
 import matplotlib.pyplot as plt
+
+CSV_PATH = os.path.join(os.path.dirname(__file__), '..', 'arena', 'results_log.csv')
 
 
 def display_results(wins, draws, losses, engine1, engine2):
@@ -119,7 +122,7 @@ def tally(rows, engine1):
     return wins, draws, losses
 
 
-rows = read_csv('results_log.csv')
+rows = read_csv(CSV_PATH)
 if rows:
     engine1 = rows[0]['WhitePlayer']
     engine2 = rows[0]['BlackPlayer']
