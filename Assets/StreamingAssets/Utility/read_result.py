@@ -2,7 +2,8 @@ import csv
 import os
 import matplotlib.pyplot as plt
 
-CSV_PATH = os.path.join(os.path.dirname(__file__), '..', 'arena', 'results_log.csv')
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH = os.path.join(SCRIPT_DIR, '..', 'arena', 'results_log.csv')
 
 
 def display_results(wins, draws, losses, engine1, engine2):
@@ -48,7 +49,7 @@ def display_results(wins, draws, losses, engine1, engine2):
     ax.legend(loc='lower right', bbox_to_anchor=(1.0, -0.55), ncol=3, frameon=False)
 
     plt.tight_layout()
-    plt.savefig("results.png", bbox_inches='tight')
+    plt.savefig(os.path.join(SCRIPT_DIR, "results.png"), bbox_inches='tight')
     plt.close()
 
 
@@ -94,7 +95,7 @@ def display_score_graph(rows, engine1, engine2):
     plt.xlim(1, n)
     if n <= 30:
         plt.xticks(games)
-    plt.savefig("scores.png", bbox_inches='tight')
+    plt.savefig(os.path.join(SCRIPT_DIR, "scores.png"), bbox_inches='tight')
     plt.close()
 
 
