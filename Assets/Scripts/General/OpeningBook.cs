@@ -5,7 +5,6 @@ using System.Collections.Generic;
 public class OpeningBook : MonoBehaviour
 {
     [SerializeField] private  BoardHandler bh;
-    [SerializeField] private MoveGenerator mg;
 
     private string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -111,7 +110,7 @@ public class OpeningBook : MonoBehaviour
     PositionValidityCheck(ulong key, ref ChessBoard pos)
     {
         List<int> movesFromBook = Book[key];
-        MoveList moveList = mg.GenerateMoves(ref pos);
+        MoveList moveList = MoveGenerator.GenerateMoves(ref pos);
 
         foreach (int move in movesFromBook)
             if (moveList.ContainsMove(move) == false) return false;

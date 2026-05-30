@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 public class ChessBoard
 {
@@ -306,7 +305,7 @@ public class ChessBoard
         if ((ipt & 7) == 1)
         {
             // Double pawn push
-            if (Mathf.Abs(ip - fp) == 16)
+            if (System.Math.Abs(ip - fp) == 16)
             {
                 csep = (csep & CastleMask) | ((ip + fp) / 2);
 
@@ -381,7 +380,7 @@ public class ChessBoard
             hashvalue ^= TT.HashIndex[(csep >> 7) + TT.CastleBase];
 
             // Castling
-            if (Mathf.Abs(fp - ip) == 2) {
+            if (System.Math.Abs(fp - ip) == 2) {
                 MakeMoveCastling(ip, fp, 1);
                 return;
             }
@@ -455,7 +454,7 @@ public class ChessBoard
             }
         }
 
-        if ((ipt & 7) == 6 && (Mathf.Abs(ip - fp) == 2)) {
+        if ((ipt & 7) == 6 && (System.Math.Abs(ip - fp) == 2)) {
             MakeMoveCastling(ip, fp, 0);
             return;
         }

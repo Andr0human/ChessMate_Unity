@@ -67,7 +67,7 @@ public class Arena : MonoBehaviour
             Directory.CreateDirectory(dirGames);
 
         string pathPgn  = dirGames + "game" + gameNo + ".pgn";
-        string playedMoves = mm.Data.GetMoveList(mm.mg);
+        string playedMoves = mm.Data.GetMoveList();
         string pgnHeader = ScoreSheet.GeneratePgnHeader(CurrentGameNum, result, mm.Data.StartFen());
 
         string pgn = pgnHeader + playedMoves;
@@ -159,7 +159,7 @@ public class Arena : MonoBehaviour
                          ScoreSheet.Engine1Wins, ScoreSheet.Engine2Wins,
                          ScoreSheet.Draws,
                          ScoreSheet.Engine2Name);
-            Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
+            Hud.SetMoveList(mm.Data.GetMoveList());
             Hud.AppendAnomaly(CurrentGameNum, endResult, remark);
         }
 
@@ -194,7 +194,7 @@ public class Arena : MonoBehaviour
             Hud.SetMoveList("");
 
             // Live update during a game: each played move pushes the move list.
-            mm.OnMoveMade = () => Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
+            mm.OnMoveMade = () => Hud.SetMoveList(mm.Data.GetMoveList());
 
             // Post-game review wiring.
             Hud.OnContinueClicked = () => continueRequested = true;

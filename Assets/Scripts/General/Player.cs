@@ -332,7 +332,6 @@ public class ChessEngine : IPlayer
 public class HumanPlayer : IPlayer
 {
     private UserInput _ui;
-    private MoveGenerator _mg;
 
     private   int _humanMove;
     private float _humanEval;
@@ -344,7 +343,6 @@ public class HumanPlayer : IPlayer
     HumanPlayer()
     {
         _ui = GameObject.FindAnyObjectByType<UserInput>();
-        _mg = GameObject.FindAnyObjectByType<MoveGenerator>();
     }
 
 
@@ -360,7 +358,7 @@ public class HumanPlayer : IPlayer
         _humanEval = 0;
         _boardPosition = position;
 
-        MoveList movelist = _mg.GenerateMoves(ref _boardPosition);
+        MoveList movelist = MoveGenerator.GenerateMoves(ref _boardPosition);
 
         _ui.GetSquares(ref movelist);
         yield return new WaitUntil(() => (_ui.InitSquare != -1) && (_ui.DestSquare != -1));

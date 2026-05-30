@@ -5,7 +5,6 @@ using System.Collections.Generic;
 
 public class MatchManager : MonoBehaviour
 {
-    [SerializeField] public  MoveGenerator mg;
     [SerializeField] private Timer tmr;
     [SerializeField] private BoardHandler bh;
     [SerializeField] private OpeningBook ob;
@@ -101,7 +100,7 @@ public class MatchManager : MonoBehaviour
     public GameEndState
     IsGameOver()
     {
-        MoveList moveslist = mg.GenerateMoves(ref BoardPosition);
+        MoveList moveslist = MoveGenerator.GenerateMoves(ref BoardPosition);
 
         // checkmate/stalemate check — the side to move has no legal reply.
         if (moveslist.moveCount == 0)

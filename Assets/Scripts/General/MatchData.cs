@@ -1,4 +1,3 @@
-using UnityEngine;
 using System.Collections.Generic;
 
 
@@ -80,8 +79,8 @@ public class MatchData
         int count = 0;
         for (int i = 1; i < evals.Count; i += 2)
         {
-            float evalDiff = Mathf.Abs(evals[i] - evals[i - 1]);
-            float maxEval = Mathf.Max(Mathf.Abs(evals[i]), Mathf.Abs(evals[i - 1]));
+            float evalDiff = System.Math.Abs(evals[i] - evals[i - 1]);
+            float maxEval = System.Math.Max(System.Math.Abs(evals[i]), System.Math.Abs(evals[i - 1]));
 
             if ((evalDiff >= margin) && (maxEval <= 12f)) count++;
         }
@@ -107,7 +106,7 @@ public class MatchData
         int count = 0;
         foreach (float eval in evals)
         {
-            count = (Mathf.Abs(eval) < drawMargin) ? (count + 1) : (0);
+            count = (System.Math.Abs(eval) < drawMargin) ? (count + 1) : (0);
 
             if (count >= length)
                 return true;
@@ -120,7 +119,7 @@ public class MatchData
     }
 
     public string
-    GetMoveList(MoveGenerator mg)
+    GetMoveList()
     {
         var sb = new System.Text.StringBuilder();
         ChessBoard board = new ChessBoard(startPosFen);
@@ -170,7 +169,7 @@ public class MatchData
 
             // Link id = number of moves applied to reach the position AFTER this move.
             // Click handler passes this directly into MatchManager.SeekToPly().
-            string token = "<link=\"" + (i + 1) + "\">" + mg.PrintMove(move, board) + "</link>";
+            string token = "<link=\"" + (i + 1) + "\">" + MoveGenerator.PrintMove(move, board) + "</link>";
 
             if (isLast)
             {

@@ -1,13 +1,10 @@
-using UnityEngine;
-
-
-public class MoveGenerator : MonoBehaviour
+public static class MoveGenerator
 {
-    private LookupTable lt = new LookupTable();
+    private static readonly LookupTable lt = new LookupTable();
 
     #region UTILS
 
-    private bool
+    private static bool
     IsLegalMove(ChessBoard pos, int move)
     {
         int own = pos.Own();
@@ -34,7 +31,7 @@ public class MoveGenerator : MonoBehaviour
         return res;
     }
 
-    private bool
+    private static bool
     InCheck(ref ChessBoard pos, int own)
     {
         int emy = own ^ 8;
@@ -51,7 +48,7 @@ public class MoveGenerator : MonoBehaviour
         ) != 0;
     }
 
-    private void
+    private static void
     AddToMovelist(ref ChessBoard pos, ref MoveList myMoves,
         int ip, ulong endSquares, ulong pinnedSquares)
     {
@@ -78,7 +75,7 @@ public class MoveGenerator : MonoBehaviour
         }
     }
 
-    public string
+    public static string
     PrintMove(int move, ChessBoard pos)
     {
         if (move == 0)
@@ -113,7 +110,7 @@ public class MoveGenerator : MonoBehaviour
         if (ipt == 1)
         {
             string pawnsCaptures =
-                Mathf.Abs(ipCol - fpCol) == 1
+                System.Math.Abs(ipCol - fpCol) == 1
                 ? (IndexToCol(ipCol) + "x") : "";
 
             string destSquare = IndexToSquare(fpRow, fpCol);
@@ -128,7 +125,7 @@ public class MoveGenerator : MonoBehaviour
         }
         if (ipt == 6)
         {
-            if (Mathf.Abs(ipCol - fpCol) == 2)
+            if (System.Math.Abs(ipCol - fpCol) == 2)
                 return (((1UL << fp) & Bitboards.FileG) != 0 ? "O-O" : "O-O-O") + givesCheck;
 
             captures = (fpt != 0) ? "x" : "";
@@ -179,7 +176,7 @@ public class MoveGenerator : MonoBehaviour
 
     #region Attacked Squares
 
-    private ulong
+    private static ulong
     PawnsAttackedSquares(ref ChessBoard pos, int side)
     {
         int inc = 2 * (side / 8) - 1;
@@ -190,20 +187,20 @@ public class MoveGenerator : MonoBehaviour
              : ((pawns & 0x7F7F7F7F7F7F00UL) >> (8 + inc)) | ((pawns & 0xFEFEFEFEFEFE00UL) >> (8 - inc));
     }
 
-    private ulong
+    private static ulong
     KingAttackedSquares(ref ChessBoard pos, int side)
     {
         int sq = pos.IndexNo(pos.King(side));
         return lt.KingMasks[sq];
     }
 
-    private ulong
+    private static ulong
     KnightAttackedSquares(int sq)
     {
         return lt.KnightMasks[sq];
     }
 
-    private ulong
+    private static ulong
     RookAttackedSquares(ref ChessBoard pos, int sq, ulong apieces)
     {
         ulong ans = lt.RightMasks[sq] ^ lt.LeftMasks[sq] ^ lt.UpMasks[sq] ^ lt.DownMasks[sq];
@@ -216,7 +213,7 @@ public class MoveGenerator : MonoBehaviour
         return ans;
     }
 
-    private ulong
+    private static ulong
     BishopAttackedSquares(ref ChessBoard pos, int sq, ulong apieces)
     {
         ulong ans = lt.UpRightMasks[sq] ^ lt.UpLeftMasks[sq] ^ lt.DownRightMasks[sq] ^ lt.DownLeftMasks[sq];
@@ -229,7 +226,7 @@ public class MoveGenerator : MonoBehaviour
         return ans;
     }
 
-    private ulong
+    private static ulong
     QueenAttackedSquares(ref ChessBoard pos, int sq, ulong apieces)
     {
         return RookAttackedSquares(ref pos, sq, apieces)
@@ -241,7 +238,7 @@ public class MoveGenerator : MonoBehaviour
 
     #region Legal Squares
 
-    private bool
+    private static bool
     EnpassantRecheck(int ip, ref ChessBoard pos)
     {
         int own = pos.Own();
@@ -264,7 +261,7 @@ public class MoveGenerator : MonoBehaviour
         return true;
     }
 
-    private ulong
+    private static ulong
     PawnLegalMoves(ref ChessBoard pos, int sq)
     {
         int side = pos.color;
@@ -291,13 +288,13 @@ public class MoveGenerator : MonoBehaviour
         return destSquares;
     }
 
-    private ulong
+    private static ulong
     KnightLegalMoves(ref ChessBoard pos, int sq)
     {
         return KnightAttackedSquares(sq) & ~pos.All(pos.Own());
     }
 
-    private ulong
+    private static ulong
     BishopLegalMoves(ref ChessBoard pos, int sq)
     {
         ulong apieces = pos.All();
@@ -305,7 +302,7 @@ public class MoveGenerator : MonoBehaviour
         return ans & ~pos.All(pos.Own());
     }
 
-    private ulong
+    private static ulong
     RookLegalMoves(ref ChessBoard pos, int sq)
     {
         ulong apieces = pos.All();
@@ -313,7 +310,7 @@ public class MoveGenerator : MonoBehaviour
         return ans & ~pos.All(pos.Own());
     }
 
-    private ulong
+    private static ulong
     QueenLegalMoves(ref ChessBoard pos, int sq)
     {
         return RookLegalMoves(ref pos, sq) | BishopLegalMoves(ref pos, sq);
@@ -322,7 +319,7 @@ public class MoveGenerator : MonoBehaviour
     #endregion
 
 
-    private ulong
+    private static ulong
     PinnedSquares(ref ChessBoard pos)
     {
         int own = pos.Own();
@@ -352,7 +349,7 @@ public class MoveGenerator : MonoBehaviour
              | GeneratePinnedSquare(pos.Msb, ref pos, ebq, lt.DownLeftMasks);
     }
 
-    private ulong
+    private static ulong
     GeneratePinnedSquare(System.Func<ulong, ulong> pick, ref ChessBoard pos, ulong emyPiece, ulong[] table)
     {
         int own = pos.Own();
@@ -371,7 +368,7 @@ public class MoveGenerator : MonoBehaviour
         return 0;
     }
 
-    public void
+    public static void
     GeneratePieceMoves(ref ChessBoard pos, ref MoveList myMoves, ulong KA, ulong validSquares)
     {
         validSquares = KA * validSquares + (1 - KA) * ~(0UL);
@@ -399,7 +396,7 @@ public class MoveGenerator : MonoBehaviour
         }
     }
 
-    private ulong
+    private static ulong
     GenerateAttackedSquares(ref ChessBoard pos)
     {
         ulong res = 0;
@@ -429,7 +426,7 @@ public class MoveGenerator : MonoBehaviour
     }
 
 
-    private (int, ulong)
+    private static (int, ulong)
     KingAttackers(ref ChessBoard pos, ulong attackedSquares)
     {
         int own = pos.Own();
@@ -486,7 +483,7 @@ public class MoveGenerator : MonoBehaviour
     }
 
 
-    private void
+    private static void
     GenerateKingMoves(ref ChessBoard pos, ref MoveList myMoves, ulong attackedSq)
     {
         int own = pos.Own();
@@ -526,7 +523,7 @@ public class MoveGenerator : MonoBehaviour
     }
 
 
-    public MoveList
+    public static MoveList
     GenerateMoves(ref ChessBoard position)
     {
         MoveList myMoves = new MoveList(position.color);
@@ -543,7 +540,7 @@ public class MoveGenerator : MonoBehaviour
     }
 
 
-    public ulong
+    public static ulong
     BulkCount(ref ChessBoard pos, int depth)
     {
         if (depth <= 0)
