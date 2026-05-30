@@ -2807,7 +2807,6 @@ GameObject:
   - component: {fileID: 749713533}
   - component: {fileID: 749713534}
   - component: {fileID: 749713535}
-  - component: {fileID: 749713536}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2925,7 +2924,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tmr: {fileID: 749713527}
   bh: {fileID: 749713525}
-  ob: {fileID: 749713536}
   EndScreen: {fileID: 1926973903}
   SuppressEndScreen: 0
   PlayerEvalTexts:
@@ -2935,20 +2933,6 @@ MonoBehaviour:
   Side2Move: 0
   EndState: 0
   EndPrediction: 0
---- !u!114 &749713536
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 749713521}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4ca8c56fd5409046a5c16fc5707b275, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OpeningBook
-  bh: {fileID: 749713525}
-  openings: []
 --- !u!1 &760425337
 GameObject:
   m_ObjectHideFlags: 0

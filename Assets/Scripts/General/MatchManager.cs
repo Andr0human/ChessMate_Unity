@@ -7,7 +7,12 @@ public class MatchManager : MonoBehaviour
 {
     [SerializeField] private Timer tmr;
     [SerializeField] private BoardHandler bh;
-    [SerializeField] private OpeningBook ob;
+
+    // OpeningBook is a plain class now, not a scene component. MatchManager is
+    // the single main-thread owner: it builds the book once in Awake (where
+    // streamingAssetsPath is resolvable) and exposes it for DashBoard, Arena,
+    // and the ChessEngine players it spawns.
+    public OpeningBook OB { get; private set; }
 
     [SerializeField] private GameObject EndScreen;
 
@@ -45,10 +50,19 @@ public class MatchManager : MonoBehaviour
 
 
     private void
+    Awake()
+    {
+        // TT must be ready before the book builder hashes positions.
+        TT.Init();
+        OB = new OpeningBook(Application.streamingAssetsPath);
+        if (!OB.GetOpeningBook())
+            Debug.LogWarning("Opening book not found — games will run without it.");
+    }
+
+
+    private void
     Start()
     {
-        TT.Init();
-
         BoardPosition = new ChessBoard(startFen);
         bh.InitializeBoard(ref BoardPosition);
         Players = new IPlayer[2];
@@ -61,7 +75,7 @@ public class MatchManager : MonoBehaviour
     private IEnumerator
     PlayOpening(string opening)
     {
-        if (ob.IsFen(opening))
+        if (OB.IsFen(opening))
         {
             Data = new MatchData(opening);
             BoardPosition = new ChessBoard(opening);
@@ -76,7 +90,7 @@ public class MatchManager : MonoBehaviour
         else
         {
             Data = new MatchData(startFen);
-            List<int> openingLine = ob.ExtractLine(opening);
+            List<int> openingLine = OB.ExtractLine(opening);
             float timeLeft = tmr.AllotedTimePerSide;
 
             // Play all moves of the opening line
@@ -216,11 +230,11 @@ public class MatchManager : MonoBehaviour
 
         Players[0] = (playerWhite == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerWhite, fixedTimePerMove, allowOpeningBook, whiteLog);
+                      : new ChessEngine(playerWhite, OB, fixedTimePerMove, allowOpeningBook, whiteLog);
 
         Players[1] = (playerBlack == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerBlack, fixedTimePerMove, allowOpeningBook, blackLog);
+                      : new ChessEngine(playerBlack, OB, fixedTimePerMove, allowOpeningBook, blackLog);
 
         yield return new WaitForSeconds(1);
 

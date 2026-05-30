@@ -59,10 +59,10 @@ public class ChessEngine : IPlayer
 
 
     public
-    ChessEngine(string engine, bool fixedMoveTime=false,
+    ChessEngine(string engine, OpeningBook openingBook, bool fixedMoveTime=false,
         bool allowOpeningBook=true, string searchLogPath=null)
     {
-        _ob  = GameObject.FindAnyObjectByType<OpeningBook>();
+        _ob  = openingBook;
         _tmr = GameObject.FindAnyObjectByType<Timer>();
 
         _engineName       = engine;

@@ -170,7 +170,7 @@ public class Arena : MonoBehaviour
     public void
     InitArena()
     {
-        GameObject.FindAnyObjectByType<OpeningBook>().GetOpeningLines(OpeningsFilePath);
+        mm.OB.GetOpeningLines(OpeningsFilePath);
 
         string dirArena = Application.streamingAssetsPath + "/arena/";
         if (!Directory.Exists(dirArena))
@@ -229,7 +229,7 @@ public class Arena : MonoBehaviour
             }
 
             if (side2start == 0)
-                openingMoves = FindAnyObjectByType<OpeningBook>().NextOpening();
+                openingMoves = mm.OB.NextOpening();
 
             GameObject.FindAnyObjectByType<Timer>().SetTime(FixedTimePerGame, IncrementPerGame);
 
