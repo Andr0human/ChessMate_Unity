@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using UnityEngine;
 
 
@@ -35,6 +36,14 @@ public class ChessEngine : IPlayer
     public bool AllowOpeningBook;
 
     private readonly ConcurrentQueue<string> _engineOutput = new ConcurrentQueue<string>();
+
+    // Pulsed by the stdout handler on every line so PlayBlocking (the
+    // synchronous, worker-thread flavor) can wait for a bestmove without
+    // busy-spinning. The coroutine Play path ignores it — it frame-polls
+    // ReadOutput via WaitUntil instead. AutoResetEvent latches a single
+    // signal, so pulses with no waiter (coroutine path) don't accumulate.
+    // Nulled by Stop() on teardown, hence not readonly; the handler null-guards.
+    private AutoResetEvent _outputSignal = new AutoResetEvent(false);
 
     // Stashed by Play() so ReadOutput can decode the engine's bestmove
     // back into a packed-int move before _engineMove is exposed.
@@ -104,6 +113,9 @@ public class ChessEngine : IPlayer
             if (args.Data == null) return;
             _engineOutput.Enqueue(args.Data);
             WriteLog("< " + args.Data);
+            // A late stdout line can land during/after Stop() nulls+disposes
+            // the event; null-guard + catch absorb that race.
+            try { _outputSignal?.Set(); } catch (System.ObjectDisposedException) { /* stopped */ }
         };
 
         _engineProcess.Start();
@@ -141,8 +153,12 @@ public class ChessEngine : IPlayer
     }
 
 
-    public IEnumerator
-    Play(ChessBoard position, int lastMove)
+    // Per-turn setup shared by Play (coroutine) and PlayBlocking (synchronous).
+    // Resets per-turn state, maintains the anchor FEN + replayed-move history,
+    // and short-circuits with a book move when one is available. Returns true
+    // if a book move was taken — the caller then skips the engine search.
+    private bool
+    PrepareTurn(ChessBoard position, int lastMove)
     {
         _engineMove = 0;
         _engineEval = 0;
@@ -169,9 +185,17 @@ public class ChessEngine : IPlayer
             _engineEval = 0;
             _engineMove = bookMove;
             _uciHistory.Add(MoveCodec.EncodeToUci(bookMove));
-            yield break;
+            return true;
         }
 
+        return false;
+    }
+
+
+    // Sends the current position + a `go` command. Shared by both Play flavors.
+    private void
+    SendGo()
+    {
         SendPosition(_anchorFen, _uciHistory);
 
         if (FixedMoveTime)
@@ -192,12 +216,62 @@ public class ChessEngine : IPlayer
             SendLine("go wtime " + wtime + " btime " + btime
                 + " winc " + inc + " binc " + inc);
         }
+    }
+
+
+    // Tracks our own move so the engine sees it as part of history next turn.
+    private void
+    RecordOwnMove()
+    {
+        if (_lastBestmoveUci != null && _engineMove > 0)
+            _uciHistory.Add(_lastBestmoveUci);
+    }
+
+
+    public IEnumerator
+    Play(ChessBoard position, int lastMove)
+    {
+        if (PrepareTurn(position, lastMove))
+            yield break;
+
+        SendGo();
 
         yield return new WaitUntil( ReadOutput );
 
-        // Track our own move so the engine sees it as part of history next turn.
-        if (_lastBestmoveUci != null && _engineMove > 0)
-            _uciHistory.Add(_lastBestmoveUci);
+        RecordOwnMove();
+    }
+
+
+    // Synchronous twin of Play for background arena workers, which run off the
+    // Unity main thread and so can't use coroutines / WaitUntil. Sends the
+    // position + go, then blocks the calling thread until the engine emits a
+    // bestmove, and returns (move, eval) directly instead of stashing them for
+    // a later GetResults() call. Same engine conversation as Play — only the
+    // waiting strategy differs (block vs. frame-poll).
+    public (int, float)
+    PlayBlocking(ChessBoard position, int lastMove)
+    {
+        if (PrepareTurn(position, lastMove))
+            return (_engineMove, _engineEval);
+
+        SendGo();
+
+        // Block until the engine answers. The stdout handler pulses
+        // _outputSignal per line; ReadOutput() drains the queue and returns
+        // true once it sees a bestmove. The 1s wake-up is a safety valve: if
+        // the engine dies mid-search (process exited, no more lines coming),
+        // end the turn as "no move" instead of hanging the worker forever.
+        while (!ReadOutput())
+        {
+            if (!_outputSignal.WaitOne(1000)
+                && _engineProcess != null && _engineProcess.HasExited)
+            {
+                break;   // engine gone; _engineMove stays 0 → no move
+            }
+        }
+
+        RecordOwnMove();
+        return (_engineMove, _engineEval);
     }
 
 
@@ -301,6 +375,18 @@ public class ChessEngine : IPlayer
         }
 
         _engineProcess = null;
+
+        // Tear the signal down exactly once. Stop() can run more than once
+        // (game-end, then MatchManager.OnApplicationQuit), and a buffered
+        // stdout line can still fire the handler mid-teardown. Null it first so
+        // a second Stop() is a no-op and the handler's null-guard short-circuits;
+        // Set() before Dispose() wakes any thread parked in PlayBlocking.
+        AutoResetEvent sig = _outputSignal;
+        _outputSignal = null;
+        if (sig != null)
+        {
+            try { sig.Set(); sig.Dispose(); } catch { /* already gone */ }
+        }
 
         if (_searchLog != null)
         {
