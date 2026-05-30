@@ -266,16 +266,21 @@ public class ChessEngine : IPlayer
 
         // Block until the engine answers. The stdout handler pulses
         // _outputSignal per line; ReadOutput() drains the queue and returns
-        // true once it sees a bestmove. The 1s wake-up is a safety valve: if
-        // the engine dies mid-search (process exited, no more lines coming),
-        // end the turn as "no move" instead of hanging the worker forever.
+        // true once it sees a bestmove. Two escape hatches keep a worker from
+        // hanging forever, both checked on the 1s wake-up:
+        //   - the engine process exited (died mid-search, no more lines coming);
+        //   - the side-to-move's clock ran out while the engine is alive but
+        //     wedged (no bestmove arriving). The coroutine Play path is saved
+        //     here by its WaitUntil clock check; the blocking path has no frame
+        //     loop, so it must check the (still-ticking) clock itself.
+        // On either break _engineMove stays 0 → caller scores it a time loss.
+        // ChessBoard.color: 1 = white to move → clock side 0, 0 = black → side 1.
+        int side = _currentPosition.color ^ 1;
         while (!ReadOutput())
         {
-            if (!_outputSignal.WaitOne(1000)
-                && _engineProcess != null && _engineProcess.HasExited)
-            {
-                break;   // engine gone; _engineMove stays 0 → no move
-            }
+            if (_outputSignal.WaitOne(1000)) continue;
+            if (_engineProcess != null && _engineProcess.HasExited) break;
+            if (_clock.Remaining(side) <= 0f) break;
         }
 
         RecordOwnMove();
