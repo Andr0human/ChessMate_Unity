@@ -1,7 +1,7 @@
 using UnityEngine;
 using TMPro;
 
-public class Timer : MonoBehaviour
+public class Timer : MonoBehaviour, IClock
 {
     public float AllotedTimePerSide = 60f;
     public float IncrementTime = 1f;
@@ -107,4 +107,16 @@ public class Timer : MonoBehaviour
         AllotedTimePerSide = perSide;
         IncrementTime = increment;
     }
+
+
+    // IClock reads. The array + IncrementTime field stay the source of truth
+    // (Update() drives them each frame); these just expose them through the
+    // interface so the engine can read time without knowing it holds a Timer.
+    public float
+    Remaining(int side)
+    { return ChessClocks[side]; }
+
+    public float
+    Increment()
+    { return IncrementTime; }
 }

@@ -26,7 +26,13 @@ public interface IPlayer
 public class ChessEngine : IPlayer
 {
     private OpeningBook _ob;
-    private Timer       _tmr;
+
+    // Injected so the engine never touches a scene component or Unity API: a
+    // worker thread can't FindAnyObjectByType<Timer> or read
+    // Application.streamingAssetsPath off the main thread. In scenes these are
+    // the real Timer + Application.streamingAssetsPath, passed by MatchManager.
+    private readonly IClock _clock;
+    private readonly string _streamingAssetsPath;
 
     private Process _engineProcess;
     private string  _engineName;
@@ -68,17 +74,19 @@ public class ChessEngine : IPlayer
 
 
     public
-    ChessEngine(string engine, OpeningBook openingBook, bool fixedMoveTime=false,
+    ChessEngine(string engine, OpeningBook openingBook, IClock clock,
+        string streamingAssetsPath, bool fixedMoveTime=false,
         bool allowOpeningBook=true, string searchLogPath=null)
     {
-        _ob  = openingBook;
-        _tmr = GameObject.FindAnyObjectByType<Timer>();
+        _ob    = openingBook;
+        _clock = clock;
+        _streamingAssetsPath = streamingAssetsPath;
 
         _engineName       = engine;
         FixedMoveTime    = fixedMoveTime;
         AllowOpeningBook = allowOpeningBook;
 
-        _enginePath = Application.streamingAssetsPath + "/" + engine + ".exe";
+        _enginePath = _streamingAssetsPath + "/" + engine + ".exe";
 
         _engineProcess = new Process();
         _engineProcess.StartInfo = new ProcessStartInfo(_enginePath)
@@ -89,7 +97,7 @@ public class ChessEngine : IPlayer
             RedirectStandardError = true,
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden,
-            WorkingDirectory = Application.streamingAssetsPath,
+            WorkingDirectory = _streamingAssetsPath,
         };
 
         if (!string.IsNullOrEmpty(searchLogPath))
@@ -207,11 +215,11 @@ public class ChessEngine : IPlayer
         else
         {
             // Forward the raw clock and let the engine decide its own search
-            // time (UCI-correct split). ChessClocks[0] = white, [1] = black;
+            // time (UCI-correct split). Remaining(0) = white, (1) = black;
             // clocks can dip briefly negative, so clamp each to >= 1 ms.
-            int wtime = Mathf.Max(1, Mathf.RoundToInt(_tmr.ChessClocks[0] * 1000f));
-            int btime = Mathf.Max(1, Mathf.RoundToInt(_tmr.ChessClocks[1] * 1000f));
-            int inc   = Mathf.Max(0, Mathf.RoundToInt(_tmr.IncrementTime    * 1000f));
+            int wtime = System.Math.Max(1, (int)System.Math.Round(_clock.Remaining(0) * 1000f));
+            int btime = System.Math.Max(1, (int)System.Math.Round(_clock.Remaining(1) * 1000f));
+            int inc   = System.Math.Max(0, (int)System.Math.Round(_clock.Increment()  * 1000f));
 
             SendLine("go wtime " + wtime + " btime " + btime
                 + " winc " + inc + " binc " + inc);

@@ -230,11 +230,13 @@ public class MatchManager : MonoBehaviour
 
         Players[0] = (playerWhite == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerWhite, OB, fixedTimePerMove, allowOpeningBook, whiteLog);
+                      : new ChessEngine(playerWhite, OB, tmr, Application.streamingAssetsPath,
+                                        fixedTimePerMove, allowOpeningBook, whiteLog);
 
         Players[1] = (playerBlack == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerBlack, OB, fixedTimePerMove, allowOpeningBook, blackLog);
+                      : new ChessEngine(playerBlack, OB, tmr, Application.streamingAssetsPath,
+                                        fixedTimePerMove, allowOpeningBook, blackLog);
 
         yield return new WaitForSeconds(1);
 
