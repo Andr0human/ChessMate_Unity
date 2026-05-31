@@ -4,6 +4,7 @@ using UnityEngine.UI;
 public class DashBoard : MonoBehaviour
 {
     [SerializeField] private Timer tmr;
+    [SerializeField] private GameObject SetupRoot;
     [SerializeField] private GameObject[] ChessClocksText;
     [SerializeField] private GameObject BookMissingBanner;
 
@@ -64,10 +65,7 @@ public class DashBoard : MonoBehaviour
     public void
     PlayButton()
     {
-        GameObject.Find("Play Button").SetActive(false);
-        GameObject.Find("Time Format").SetActive(false);
-        GameObject.Find("Color Format").SetActive(false);
-        GameObject.Find("BackBoard").SetActive(false);
+        SetupRoot.SetActive(false);
 
         if (BookMissingBanner != null)
             BookMissingBanner.SetActive(false);
