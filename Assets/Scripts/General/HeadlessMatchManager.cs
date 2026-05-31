@@ -162,6 +162,24 @@ public class HeadlessMatchManager
     }
 
 
+    // Forcibly stop the current game's engines from ANOTHER thread — the worker
+    // pool's shutdown path, when the app quits mid-run and a worker is blocked
+    // in PlayBlocking on a game that could still have ~80s to run (the fat
+    // tail). ChessEngine.Stop() is idempotent and defensive against concurrent
+    // stdout callbacks, so calling it cross-thread while the owning worker is
+    // mid-search is safe: the process dies, PlayBlocking unblocks on the
+    // process-exit escape, and the worker scores it a loss / exits. No-op
+    // between games (the previous PlayGame's finally already Stop()ed both, and
+    // a second Stop() is harmless). Without this, hard app-exit would orphan the
+    // in-flight bot.exe children (Windows doesn't kill them with the parent).
+    public void
+    AbortEngines()
+    {
+        Players[0]?.Stop();
+        Players[1]?.Stop();
+    }
+
+
     private void
     PlayOpening(string opening)
     {

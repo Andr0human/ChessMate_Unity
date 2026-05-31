@@ -67,7 +67,10 @@ public class Arena : MonoBehaviour
             Directory.CreateDirectory(dirGames);
 
         string pathPgn  = dirGames + "game" + gameNo + ".pgn";
-        string playedMoves = mm.Data.GetMoveList();
+        // Clean SAN movetext for the file — GetMoveList() (used live in the HUD)
+        // embeds TMP tags that make the .pgn unparseable in external chess tools.
+        string resultToken = result == 1 ? "1-0" : (result == -1 ? "0-1" : "1/2-1/2");
+        string playedMoves = mm.Data.GetPgnMoveText(resultToken);
         string pgnHeader = ScoreSheet.GeneratePgnHeader(CurrentGameNum, result, mm.Data.StartFen());
 
         string pgn = pgnHeader + playedMoves;

@@ -193,6 +193,60 @@ public class MatchData
         return sb.ToString();
     }
 
+
+    // Plain standard-PGN movetext for the .pgn files on disk. GetMoveList()
+    // above is for the on-screen list and embeds TMP rich-text tags
+    // (<link>/<mspace>/<pos>/<color>) that make the file unparseable by any
+    // chess GUI; this is the clean counterpart. Pass the game's result token
+    // ("1-0"/"0-1"/"1/2-1/2"/"*") so the movetext is terminated as PGN requires.
+    public string
+    GetPgnMoveText(string resultToken = "*")
+    {
+        var sb = new System.Text.StringBuilder();
+        ChessBoard board = new ChessBoard(startPosFen);
+
+        string[] fenParts = startPosFen.Split(' ');
+        bool whiteFirst = fenParts.Length < 2 || fenParts[1] == "w";
+        int startFullMove = 1;
+        if (fenParts.Length >= 6) int.TryParse(fenParts[5], out startFullMove);
+        if (startFullMove < 1) startFullMove = 1;
+
+        int lineLen = 0;
+        void Emit(string token)
+        {
+            // Wrap near 80 columns like a standard PGN export.
+            if (lineLen > 0 && lineLen + token.Length + 1 > 80)
+            {
+                sb.Append('\n');
+                lineLen = 0;
+            }
+            else if (lineLen > 0)
+            {
+                sb.Append(' ');
+                lineLen++;
+            }
+            sb.Append(token);
+            lineLen += token.Length;
+        }
+
+        for (int i = 0; i < moves.Count; i++)
+        {
+            int move = moves[i];
+            bool isWhitePly = whiteFirst ? (i % 2 == 0) : (i % 2 == 1);
+            int  fullMoveNo = whiteFirst ? (startFullMove + i / 2)
+                                         : (startFullMove + (i + 1) / 2);
+
+            if (isWhitePly)      Emit(fullMoveNo + ".");
+            else if (i == 0)     Emit(fullMoveNo + "...");   // black-to-move start
+
+            Emit(MoveGenerator.PrintMove(move, board));
+            board.MakeMove(move);
+        }
+
+        Emit(resultToken);
+        return sb.ToString();
+    }
+
     public int
     MoveAt(int index)
     {
