@@ -1,23 +1,31 @@
-using UnityEngine;
 using System.IO;
 using System.Collections.Generic;
 
-public class OpeningBook : MonoBehaviour
+// Plain (non-MonoBehaviour) class. The Unity-side concerns it used to carry —
+// streamingAssetsPath resolution and book-move randomness — are injected:
+// the path comes in via the constructor, randomness uses an owned RNG. A
+// main-thread owner (MatchManager) constructs it once and hands it out, so
+// the book can be shared read-only across background arena workers.
+public class OpeningBook
 {
-    [SerializeField] private  BoardHandler bh;
-    [SerializeField] private MoveGenerator mg;
-
     private string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     public Dictionary<ulong, List<int>> Book;
     public string[] openings;
     private int openingLineNum = 0;
 
-    private void
-    Awake()
+    // Resolved on the main thread by the owner and passed in (Unity's
+    // Application.streamingAssetsPath can't be read off the main thread).
+    private readonly string streamingAssetsPath;
+
+    // Owned RNG for book-move selection. Locked on use so a shared instance
+    // stays safe if multiple arena workers pick book moves concurrently.
+    private readonly System.Random rng = new System.Random();
+
+    public
+    OpeningBook(string streamingAssetsPath)
     {
-        TT.Init();
-        GetOpeningBook();
+        this.streamingAssetsPath = streamingAssetsPath;
     }
 
     public bool
@@ -49,7 +57,7 @@ public class OpeningBook : MonoBehaviour
     public void
     GetOpeningLines(string filePath)
     {
-        string path = Application.streamingAssetsPath + "/Utility/" + filePath + ".opening";
+        string path = streamingAssetsPath + "/Utility/" + filePath + ".opening";
         openings = File.ReadAllLines(path);
     }
 
@@ -63,17 +71,18 @@ public class OpeningBook : MonoBehaviour
     }
 
 
-    public void
+    // Loads the opening book from disk. Returns true on success, false if the
+    // book file is missing. Either way Book is left non-null (empty on failure)
+    // so callers can query it without null checks. The caller decides how to
+    // react to a false return (log, show a banner, run book-less, etc.).
+    public bool
     GetOpeningBook()
     {
         Book = new Dictionary<ulong, List<int>>();
 
-        string bookPath = Application.streamingAssetsPath + "/Utility/Opening Book.opening";
+        string bookPath = streamingAssetsPath + "/Utility/Opening Book.opening";
         if (!File.Exists(bookPath))
-        {
-            UnityEngine.Debug.LogWarning("No opening book found at " + bookPath);
-            return;
-        }
+            return false;
 
         string[] lines = File.ReadAllLines(bookPath);
 
@@ -95,7 +104,7 @@ public class OpeningBook : MonoBehaviour
                 position.MakeMove(eMove);
             }
         }
-        UnityEngine.Debug.Log("Opening Book Generated!");
+        return true;
     }
 
     public bool
@@ -111,7 +120,7 @@ public class OpeningBook : MonoBehaviour
     PositionValidityCheck(ulong key, ref ChessBoard pos)
     {
         List<int> movesFromBook = Book[key];
-        MoveList moveList = mg.GenerateMoves(ref pos);
+        MoveList moveList = MoveGenerator.GenerateMoves(ref pos);
 
         foreach (int move in movesFromBook)
             if (moveList.ContainsMove(move) == false) return false;
@@ -125,7 +134,8 @@ public class OpeningBook : MonoBehaviour
         ulong key = pos.GenerateHashKey();
         List<int> moves = Book[key];
 
-        int randomIndex = UnityEngine.Random.Range(0, moves.Count);
+        int randomIndex;
+        lock (rng) { randomIndex = rng.Next(moves.Count); }
         return moves[randomIndex];
     }
 

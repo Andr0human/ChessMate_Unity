@@ -15,7 +15,8 @@ public class DashBoard : MonoBehaviour
     private void
     Start()
     {
-        OpeningBook ob = GameObject.FindAnyObjectByType<OpeningBook>();
+        MatchManager mm = GameObject.FindAnyObjectByType<MatchManager>();
+        OpeningBook ob = (mm != null) ? mm.OB : null;
         bool bookLoaded = (ob != null) && (ob.Book != null) && (ob.Book.Count > 0);
 
         if (BookMissingBanner != null)

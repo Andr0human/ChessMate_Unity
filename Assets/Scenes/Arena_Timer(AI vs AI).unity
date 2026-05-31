@@ -9341,12 +9341,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1554426736}
   - component: {fileID: 1554426737}
-  - component: {fileID: 1554426739}
   - component: {fileID: 1554426742}
   - component: {fileID: 1554426743}
   - component: {fileID: 1554426744}
   - component: {fileID: 1554426745}
-  - component: {fileID: 1554426746}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -9394,18 +9392,6 @@ MonoBehaviour:
   - {fileID: 241759099}
   - {fileID: 258217720}
   - {fileID: 1928718619}
---- !u!114 &1554426739
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1554426735}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08f3eb120d769934e8dbdf16ebc573d3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1554426742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9458,10 +9444,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bb0cfc9ddaa76e46924f282d357477d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mg: {fileID: 1554426739}
   tmr: {fileID: 1554426742}
   bh: {fileID: 1554426737}
-  ob: {fileID: 1554426746}
   EndScreen: {fileID: 1546882555}
   SuppressEndScreen: 0
   PlayerEvalTexts:
@@ -9491,21 +9475,6 @@ MonoBehaviour:
   - {fileID: 275990086}
   - {fileID: 818983725}
   OpeningDropdown: {fileID: 842411695}
---- !u!114 &1554426746
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1554426735}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4ca8c56fd5409046a5c16fc5707b275, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  bh: {fileID: 1554426737}
-  mg: {fileID: 1554426739}
-  openings: []
 --- !u!1 &1566363115 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 51614721084381701, guid: 9226d4902fab87a46b1171cf7f5337ab, type: 3}

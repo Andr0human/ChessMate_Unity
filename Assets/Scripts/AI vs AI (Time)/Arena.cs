@@ -67,7 +67,10 @@ public class Arena : MonoBehaviour
             Directory.CreateDirectory(dirGames);
 
         string pathPgn  = dirGames + "game" + gameNo + ".pgn";
-        string playedMoves = mm.Data.GetMoveList(mm.mg);
+        // Clean SAN movetext for the file — GetMoveList() (used live in the HUD)
+        // embeds TMP tags that make the .pgn unparseable in external chess tools.
+        string resultToken = result == 1 ? "1-0" : (result == -1 ? "0-1" : "1/2-1/2");
+        string playedMoves = mm.Data.GetPgnMoveText(resultToken);
         string pgnHeader = ScoreSheet.GeneratePgnHeader(CurrentGameNum, result, mm.Data.StartFen());
 
         string pgn = pgnHeader + playedMoves;
@@ -159,7 +162,7 @@ public class Arena : MonoBehaviour
                          ScoreSheet.Engine1Wins, ScoreSheet.Engine2Wins,
                          ScoreSheet.Draws,
                          ScoreSheet.Engine2Name);
-            Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
+            Hud.SetMoveList(mm.Data.GetMoveList());
             Hud.AppendAnomaly(CurrentGameNum, endResult, remark);
         }
 
@@ -170,7 +173,7 @@ public class Arena : MonoBehaviour
     public void
     InitArena()
     {
-        GameObject.FindAnyObjectByType<OpeningBook>().GetOpeningLines(OpeningsFilePath);
+        mm.OB.GetOpeningLines(OpeningsFilePath);
 
         string dirArena = Application.streamingAssetsPath + "/arena/";
         if (!Directory.Exists(dirArena))
@@ -194,7 +197,7 @@ public class Arena : MonoBehaviour
             Hud.SetMoveList("");
 
             // Live update during a game: each played move pushes the move list.
-            mm.OnMoveMade = () => Hud.SetMoveList(mm.Data.GetMoveList(mm.mg));
+            mm.OnMoveMade = () => Hud.SetMoveList(mm.Data.GetMoveList());
 
             // Post-game review wiring.
             Hud.OnContinueClicked = () => continueRequested = true;
@@ -229,7 +232,7 @@ public class Arena : MonoBehaviour
             }
 
             if (side2start == 0)
-                openingMoves = FindAnyObjectByType<OpeningBook>().NextOpening();
+                openingMoves = mm.OB.NextOpening();
 
             GameObject.FindAnyObjectByType<Timer>().SetTime(FixedTimePerGame, IncrementPerGame);
 

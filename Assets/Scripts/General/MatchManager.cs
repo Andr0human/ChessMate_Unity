@@ -5,10 +5,14 @@ using System.Collections.Generic;
 
 public class MatchManager : MonoBehaviour
 {
-    [SerializeField] public  MoveGenerator mg;
     [SerializeField] private Timer tmr;
     [SerializeField] private BoardHandler bh;
-    [SerializeField] private OpeningBook ob;
+
+    // OpeningBook is a plain class now, not a scene component. MatchManager is
+    // the single main-thread owner: it builds the book once in Awake (where
+    // streamingAssetsPath is resolvable) and exposes it for DashBoard, Arena,
+    // and the ChessEngine players it spawns.
+    public OpeningBook OB { get; private set; }
 
     [SerializeField] private GameObject EndScreen;
 
@@ -46,10 +50,19 @@ public class MatchManager : MonoBehaviour
 
 
     private void
+    Awake()
+    {
+        // TT must be ready before the book builder hashes positions.
+        TT.Init();
+        OB = new OpeningBook(Application.streamingAssetsPath);
+        if (!OB.GetOpeningBook())
+            Debug.LogWarning("Opening book not found — games will run without it.");
+    }
+
+
+    private void
     Start()
     {
-        TT.Init();
-
         BoardPosition = new ChessBoard(startFen);
         bh.InitializeBoard(ref BoardPosition);
         Players = new IPlayer[2];
@@ -62,7 +75,7 @@ public class MatchManager : MonoBehaviour
     private IEnumerator
     PlayOpening(string opening)
     {
-        if (ob.IsFen(opening))
+        if (OB.IsFen(opening))
         {
             Data = new MatchData(opening);
             BoardPosition = new ChessBoard(opening);
@@ -77,7 +90,7 @@ public class MatchManager : MonoBehaviour
         else
         {
             Data = new MatchData(startFen);
-            List<int> openingLine = ob.ExtractLine(opening);
+            List<int> openingLine = OB.ExtractLine(opening);
             float timeLeft = tmr.AllotedTimePerSide;
 
             // Play all moves of the opening line
@@ -101,30 +114,8 @@ public class MatchManager : MonoBehaviour
     public GameEndState
     IsGameOver()
     {
-        MoveList moveslist = mg.GenerateMoves(ref BoardPosition);
-
-        // checkmate/stalemate check — the side to move has no legal reply.
-        if (moveslist.moveCount == 0)
-        {
-            if (moveslist.KingAttackers == 0)
-                return GameEndState.DrawByStalemate;
-            return (Side2Move == 0) ? GameEndState.BlackWinsByCheckmate
-                                    : GameEndState.WhiteWinsByCheckmate;
-        }
-
-        // Insufficient material check
-        if (InsufficientMaterial(ref BoardPosition)) return GameEndState.DrawByInsufficientMaterial;
-
-        // 3-fold repetition and 50-move-rule
-        if (Data.ThreeMoveRepetitionDraw()) return GameEndState.DrawByRepetition;
-        if (Data.FiftyMoveRuleDraw()) return GameEndState.DrawByFiftyMoveRule;
-
-        // Check if lost on time
-        if (tmr.ChessClocks[Side2Move] < 0f)
-            return (Side2Move == 0) ? GameEndState.BlackWinsOnTime
-                                    : GameEndState.WhiteWinsOnTime;
-
-        return GameEndState.Ongoing;
+        return GameUtils.IsGameOver(ref BoardPosition, Data, Side2Move,
+                                    tmr.ChessClocks[Side2Move]);
     }
 
 
@@ -132,38 +123,6 @@ public class MatchManager : MonoBehaviour
     TimeLeftForSearch()
     {
         return tmr.ChessClocks[Side2Move] > 0f;
-    }
-
-
-    public bool
-    InsufficientMaterial(ref ChessBoard pos)
-    {
-        int w = 8, b = 0;
-
-        int wPawns   = pos.PopCount(pos.Pawn(w))  , bPawns   = pos.PopCount(pos.Pawn(b));
-        int wBishops = pos.PopCount(pos.Bishop(w)), bBishops = pos.PopCount(pos.Bishop(b));
-        int wKnights = pos.PopCount(pos.Knight(w)), bKnights = pos.PopCount(pos.Knight(b));
-        int wRooks   = pos.PopCount(pos.Rook(w))  , bRooks   = pos.PopCount(pos.Rook(b));
-        int wQueens  = pos.PopCount(pos.Queen(w)) , bQueens  = pos.PopCount(pos.Queen(b));
-
-        int wPieces = wBishops + wKnights + wRooks + wQueens;
-        int bPieces = bBishops + bKnights + bRooks + bQueens;
-
-        if (wPawns + wPieces + bPawns + bPieces == 0) return true;
-        if (wPawns > 0 || bPawns > 0) return false;
-
-        if (wPieces == 1 && bPieces == 0)
-            if (wBishops == 1 || wKnights == 1) return true;
-        if (wPieces == 0 && bPieces == 1)
-            if (bBishops == 1 || bKnights == 1) return true;
-
-        if (wPieces == 1 && bPieces == 1)
-            if ((wBishops == 1 || wKnights == 1) && (bBishops == 1 || bKnights == 1)) return true;
-
-        if (wPieces + bPieces == 2)
-            if (wKnights == 2 || bKnights == 2) return true;
-
-        return false;
     }
 
 
@@ -177,14 +136,6 @@ public class MatchManager : MonoBehaviour
     }
 
     #endregion
-
-
-    private static string
-    BuildSearchLogPath(string dir, string engineName, int gameNumber)
-    {
-        if (string.IsNullOrEmpty(dir) || engineName == "human") return null;
-        return dir + "/logs_" + engineName + "~/game_" + gameNumber + ".log";
-    }
 
 
     public IEnumerator
@@ -212,16 +163,18 @@ public class MatchManager : MonoBehaviour
             yield return StartCoroutine(PlayOpening(opening));
 
         // Create players
-        string whiteLog = BuildSearchLogPath(searchLogDir, playerWhite, searchLogGameNumber);
-        string blackLog = BuildSearchLogPath(searchLogDir, playerBlack, searchLogGameNumber);
+        string whiteLog = GameUtils.BuildSearchLogPath(searchLogDir, playerWhite, searchLogGameNumber);
+        string blackLog = GameUtils.BuildSearchLogPath(searchLogDir, playerBlack, searchLogGameNumber);
 
         Players[0] = (playerWhite == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerWhite, fixedTimePerMove, allowOpeningBook, whiteLog);
+                      : new ChessEngine(playerWhite, OB, tmr, Application.streamingAssetsPath,
+                                        fixedTimePerMove, allowOpeningBook, whiteLog);
 
         Players[1] = (playerBlack == "human")
                       ? new HumanPlayer()
-                      : new ChessEngine(playerBlack, fixedTimePerMove, allowOpeningBook, blackLog);
+                      : new ChessEngine(playerBlack, OB, tmr, Application.streamingAssetsPath,
+                                        fixedTimePerMove, allowOpeningBook, blackLog);
 
         yield return new WaitForSeconds(1);
 
@@ -385,21 +338,7 @@ public class MatchManager : MonoBehaviour
     private int
     PredictionCall()
     {
-        var (prevEval, lastEval) = Data.LastEvalPair();
-
-        // Both bots thinks white is winning
-        if (Mathf.Min(prevEval, lastEval) >  AdjournWinMargin)
-            return 1;
-
-        // Both bots thinks black is winning
-        if (Mathf.Max(prevEval, lastEval) < -AdjournWinMargin)
-            return -1;
-
-        // If position is drawn for the last N moves
-        if (Data.DrawnPositionForContinuousMoves(0.25f, 60))
-            return 2;
-
-        return 0;
+        return GameUtils.PredictionCall(Data, AdjournWinMargin);
     }
 }
 
