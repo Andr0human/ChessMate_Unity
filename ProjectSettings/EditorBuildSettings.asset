@@ -9,6 +9,6 @@ EditorBuildSettings:
     path: Assets/Scenes/Player vs AI.unity
     guid: d2af9771411b57b4cbe9ee2243f5bd6d
   - enabled: 1
-    path: Assets/Scenes/Arena_Timer(AI vs AI).unity
+    path: Assets/Scenes/Arena.unity
     guid: 372670f73a6fc3b4995f65d8455bec86
   m_configObjects: {}
