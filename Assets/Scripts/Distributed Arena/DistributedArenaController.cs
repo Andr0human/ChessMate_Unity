@@ -56,6 +56,11 @@ public class DistributedArenaController : MonoBehaviour
     private void
     Awake()
     {
+        // Cap the render loop. Uncapped, this throughput-only scene spins ~1.5
+        // cores just redrawing static HUD text — cores stolen from the bot.exe
+        // workers, which biases the worker-count sweep (worse at high N).
+        Application.targetFrameRate = 60;
+
         _streamingAssetsPath = Application.streamingAssetsPath;
         _outputDir = _streamingAssetsPath + "/distributed_arena";
 
@@ -90,10 +95,11 @@ public class DistributedArenaController : MonoBehaviour
             _pairQueue.Enqueue(new PairSpec(i, line));
         }
 
-        _scores = new DistributedScoreSheet(EngineNames[0], EngineNames[1],
-            TimePerSide, Increment, FixedTimePerMove, _outputDir);
-
         int n = Mathf.Clamp(WorkerCount, 1, 64);
+
+        _scores = new DistributedScoreSheet(EngineNames[0], EngineNames[1],
+            TimePerSide, Increment, FixedTimePerMove, n, _outputDir);
+
         _pool = new WorkerPool(n, EngineNames, _ob, _streamingAssetsPath,
             TimePerSide, Increment, FixedTimePerMove, AllowOpeningBook,
             searchLogDir: null,                // no per-game search logs in v1 (disk blowup)
@@ -125,7 +131,7 @@ public class DistributedArenaController : MonoBehaviour
 
         if (drainedAny)
         {
-            _scores.WriteSummary();
+            _scores.WriteSummary(_sw.Elapsed.TotalSeconds);
             if (GamesCompleted > 0)
             {
                 double avg = _sw.Elapsed.TotalSeconds / GamesCompleted;
@@ -146,6 +152,10 @@ public class DistributedArenaController : MonoBehaviour
         Running   = false;
         Completed = true;
         EtaSeconds = 0;
+
+        // Final rewrite with the stopped clock so results.txt's elapsed time
+        // matches the HUD's "Total time" (the last drain wrote it mid-run).
+        _scores.WriteSummary(_sw.Elapsed.TotalSeconds);
 
         var elo = _scores.Elo();
         float flagRate = GamesCompleted > 0 ? 100f * TimeLosses / GamesCompleted : 0f;

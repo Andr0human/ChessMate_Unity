@@ -151,7 +151,7 @@ public class Arena : MonoBehaviour
         // Print Results when new game pair starts
         if (s2s == 1)
         {
-            ScoreSheet.PrintArenaResult();
+            ScoreSheet.PrintArenaResult(sw.Elapsed.TotalSeconds);
         }
         ScoreSheet.PrintArenaResultLog(CurrentGameNum, endResult,
             mm.Data.MoveCount(), remark);
@@ -308,6 +308,10 @@ public class Arena : MonoBehaviour
 
         // All games ended
         sw.Stop();
+
+        // Final rewrite with the stopped clock so results.txt's elapsed time
+        // matches the HUD's "Total time" (the last pair wrote it mid-run).
+        ScoreSheet.PrintArenaResult(sw.Elapsed.TotalSeconds);
 
         if (Hud != null)
         {

@@ -109,7 +109,7 @@ public class ArenaScoreSheet
 
 
     public void
-    PrintArenaResult()
+    PrintArenaResult(double elapsedSeconds)
     {
         var ( e1WinsW,  e1WinsB) = CalculateWins(1);
         var ( e2WinsB,  e2WinsW) = CalculateWins(-1);
@@ -135,7 +135,8 @@ public class ArenaScoreSheet
             + sep + "\n"
             + engine1 + "  vs  " + engine2 + "\n\n"
             + "Time Control : " + timeControl + "\n"
-            + "Games Played : " + results.Count.ToString() + "\n\n"
+            + "Games Played : " + results.Count.ToString() + "\n"
+            + "Elapsed Time : " + TimeFormat.Verbose(elapsedSeconds) + "\n\n"
             + "             Wins   Draws   Losses\n"
             + string.Format("   White : {0,4}    {1,4}    {2,4}\n",  e1WinsW, e1DrawsW, e2WinsB)
             + string.Format("   Black : {0,4}    {1,4}    {2,4}\n",  e1WinsB, e1DrawsB, e2WinsW)

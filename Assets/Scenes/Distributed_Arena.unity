@@ -2760,7 +2760,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Fixed Time(s) Increment(s)...
+  m_text: Enter worker count
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 4880303b84446ea4aacfff2e38db2a8d, type: 2}
   m_sharedMaterial: {fileID: 8965164700179995692, guid: 4880303b84446ea4aacfff2e38db2a8d, type: 2}

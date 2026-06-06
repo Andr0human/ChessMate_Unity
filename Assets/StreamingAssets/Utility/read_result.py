@@ -1,9 +1,28 @@
 import csv
 import os
+import sys
 import matplotlib.pyplot as plt
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CSV_PATH = os.path.join(SCRIPT_DIR, '..', 'arena', 'results_log.csv')
+
+# Which run to read. The arena and distributed_arena folders share the same
+# results_log.csv columns (the distributed file just adds a Worker column,
+# which DictReader ignores by name), so the same parser works for both.
+#   python read_result.py                  -> arena (default)
+#   python read_result.py distributed      -> distributed_arena
+#   python read_result.py distributed_arena
+SOURCE_ALIASES = {
+    'arena': 'arena',
+    'distributed': 'distributed_arena',
+    'distributed_arena': 'distributed_arena',
+}
+arg = sys.argv[1].lower() if len(sys.argv) > 1 else 'arena'
+folder = SOURCE_ALIASES.get(arg)
+if folder is None:
+    sys.exit(f"Unknown source '{arg}'. Use one of: {', '.join(SOURCE_ALIASES)}")
+
+OUT_DIR  = os.path.join(SCRIPT_DIR, '..', folder)
+CSV_PATH = os.path.join(OUT_DIR, 'results_log.csv')
 
 
 def display_results(wins, draws, losses, engine1, engine2):
@@ -49,7 +68,7 @@ def display_results(wins, draws, losses, engine1, engine2):
     ax.legend(loc='lower right', bbox_to_anchor=(1.0, -0.55), ncol=3, frameon=False)
 
     plt.tight_layout()
-    plt.savefig(os.path.join(SCRIPT_DIR, "results.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(OUT_DIR, "results.png"), bbox_inches='tight')
     plt.close()
 
 
@@ -95,7 +114,7 @@ def display_score_graph(rows, engine1, engine2):
     plt.xlim(1, n)
     if n <= 30:
         plt.xticks(games)
-    plt.savefig(os.path.join(SCRIPT_DIR, "scores.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(OUT_DIR, "scores.png"), bbox_inches='tight')
     plt.close()
 
 

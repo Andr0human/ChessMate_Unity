@@ -19,6 +19,7 @@ public class DistributedScoreSheet
     private readonly float    _timePerGame;
     private readonly float    _increment;
     private readonly bool     _fixedTimePerMove;
+    private readonly int      _workerCount;
 
     private readonly string _outputDir;      // e.g. <streaming>/distributed_arena
     private readonly string _gamesDir;       // _outputDir/Games
@@ -49,12 +50,14 @@ public class DistributedScoreSheet
 
     public
     DistributedScoreSheet(string name0, string name1,
-        float timePerGame, float increment, bool fixedTimePerMove, string outputDir)
+        float timePerGame, float increment, bool fixedTimePerMove,
+        int workerCount, string outputDir)
     {
         _names            = new[] { name0, name1 };
         _timePerGame      = timePerGame;
         _increment        = increment;
         _fixedTimePerMove = fixedTimePerMove;
+        _workerCount      = workerCount;
 
         _outputDir   = outputDir;
         _gamesDir    = Path.Combine(outputDir, "Games");
@@ -171,8 +174,10 @@ public class DistributedScoreSheet
 
     // Rewrites the human-readable results.txt. Cheap; the caller may still
     // throttle it (e.g. once per drained batch) rather than once per game.
+    // elapsedSeconds is the controller's run stopwatch, so the on-disk file
+    // matches the HUD's "Total time".
     public void
-    WriteSummary()
+    WriteSummary(double elapsedSeconds)
     {
         int w0T = _w0_wins   + _b0_wins;
         int d0T = _w0_draws  + _b0_draws;
@@ -191,7 +196,9 @@ public class DistributedScoreSheet
           + sep + "\n"
           + _names[0] + "  vs  " + _names[1] + "\n\n"
           + "Time Control : " + timeControl + "\n"
-          + "Games Played : " + GamesPlayed + "\n\n"
+          + "Games Played : " + GamesPlayed + "\n"
+          + "Workers      : " + _workerCount + "\n"
+          + "Elapsed Time : " + TimeFormat.Verbose(elapsedSeconds) + "\n\n"
           + "             Wins   Draws   Losses   (engine 1, " + _names[0] + ")\n"
           + string.Format("   White : {0,4}    {1,4}    {2,4}\n",  _w0_wins, _w0_draws, _w0_losses)
           + string.Format("   Black : {0,4}    {1,4}    {2,4}\n",  _b0_wins, _b0_draws, _b0_losses)
