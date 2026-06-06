@@ -139,6 +139,11 @@ public class DistributedArenaController : MonoBehaviour
             }
         }
 
+        // Feed the cold-start ramp: open the next worker batch as games complete
+        // (and release any stragglers once the pair queue drains). No-op once all
+        // workers are live.
+        _pool.RampUp(GamesCompleted);
+
         // Done when every worker has exited AND we've drained the last result.
         if (_pool.Finished && _resultQueue.IsEmpty)
             Finish();
