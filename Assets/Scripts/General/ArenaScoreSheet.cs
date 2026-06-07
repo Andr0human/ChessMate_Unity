@@ -178,6 +178,7 @@ public class ArenaScoreSheet
           + "[White \""  + white  + "\"]\n"
           + "[Black \""  + black  + "\"]\n"
           + "[Result \"" + resultString + "\"]\n"
+          + "[SetUp \"1\"]\n"
           + "[FEN \""    + fen + "\"]\n\n";
     }
 

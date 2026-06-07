@@ -180,19 +180,68 @@ public class HeadlessMatchManager
     }
 
 
+    // Re-seat the board at the standard start position. The fallback when an
+    // opening line is blank or malformed: better to play a normal game from the
+    // start than to corrupt the board or crash the worker on a bad book entry.
+    private void
+    ResetToStartPosition()
+    {
+        Data          = new MatchData(startFen);
+        BoardPosition = new ChessBoard(startFen);
+        Side2Move     = 0;
+    }
+
+
     private void
     PlayOpening(string opening)
     {
+        // Blank / whitespace line (e.g. a stray empty line in the book file):
+        // nothing to apply — just play from the start position.
+        if (string.IsNullOrWhiteSpace(opening))
+        {
+            ResetToStartPosition();
+            return;
+        }
+
         if (_ob.IsFen(opening))
         {
+            // A malformed FEN throws in the ChessBoard parser. A worker thread
+            // would catch this as a "crash" loss with no hint it was a bad book
+            // line; instead detect it and fall back to the start position.
+            ChessBoard parsed = null;
+            try { parsed = new ChessBoard(opening); }
+            catch (System.Exception e)
+            {
+                UnityEngine.Debug.LogWarning($"Invalid opening FEN '{opening}' ({e.Message}); "
+                                             + "starting from the initial position.");
+            }
+
+            if (parsed == null)
+            {
+                ResetToStartPosition();
+                return;
+            }
+
             Data          = new MatchData(opening);
-            BoardPosition = new ChessBoard(opening);
+            Data.SeedHalfmoveClock(parsed.halfmove);   // honor the FEN's 50-move clock
+            BoardPosition = parsed;
             Side2Move     = BoardPosition.color ^ 1;
         }
         else
         {
-            Data = new MatchData(startFen);
             System.Collections.Generic.List<int> openingLine = _ob.ExtractLine(opening);
+
+            // A 0 entry means a token failed to decode (malformed line). Applying
+            // it would corrupt the board via MakeMove(0); fall back to the start.
+            if (openingLine.Contains(0))
+            {
+                UnityEngine.Debug.LogWarning($"Invalid opening line '{opening}'; "
+                                             + "starting from the initial position.");
+                ResetToStartPosition();
+                return;
+            }
+
+            Data = new MatchData(startFen);
             float timeLeft = _clock.AllotedTimePerSide;
 
             foreach (int move in openingLine)

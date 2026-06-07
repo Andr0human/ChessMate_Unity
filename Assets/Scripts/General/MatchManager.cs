@@ -72,13 +72,53 @@ public class MatchManager : MonoBehaviour
     #region MATCH_UTILS
 
 
+    // Re-seat the board at the standard start position. The fallback when an
+    // opening line is blank or malformed: better to play a normal game from the
+    // start than to corrupt the board or kill the run on a bad book entry.
+    private void
+    ResetToStartPosition()
+    {
+        Data          = new MatchData(startFen);
+        BoardPosition = new ChessBoard(startFen);
+        Side2Move     = 0;
+
+        bh.BoardReset();
+        bh.Recreate(ref BoardPosition);
+    }
+
+
     private IEnumerator
     PlayOpening(string opening)
     {
+        // Blank / whitespace line (e.g. a stray empty line in the book file):
+        // nothing to apply — just play from the start position.
+        if (string.IsNullOrWhiteSpace(opening))
+        {
+            ResetToStartPosition();
+            yield break;
+        }
+
         if (OB.IsFen(opening))
         {
+            // A malformed FEN throws in the ChessBoard parser; don't let one bad
+            // line take down the whole arena coroutine — fall back to the start.
+            ChessBoard parsed = null;
+            try { parsed = new ChessBoard(opening); }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"Invalid opening FEN '{opening}' ({e.Message}); "
+                                 + "starting from the initial position.");
+            }
+
+            if (parsed == null)
+            {
+                ResetToStartPosition();
+                yield break;
+            }
+
             Data = new MatchData(opening);
-            BoardPosition = new ChessBoard(opening);
+            Data.SeedHalfmoveClock(parsed.halfmove);   // honor the FEN's 50-move clock
+            BoardPosition = parsed;
 
             bh.BoardReset();
             bh.Recreate(ref BoardPosition);
@@ -89,8 +129,19 @@ public class MatchManager : MonoBehaviour
         }
         else
         {
-            Data = new MatchData(startFen);
             List<int> openingLine = OB.ExtractLine(opening);
+
+            // A 0 entry means a token failed to decode (malformed line). Applying
+            // it would corrupt the board via MakeMove(0); fall back to the start.
+            if (openingLine.Contains(0))
+            {
+                Debug.LogWarning($"Invalid opening line '{opening}'; "
+                                 + "starting from the initial position.");
+                ResetToStartPosition();
+                yield break;
+            }
+
+            Data = new MatchData(startFen);
             float timeLeft = tmr.AllotedTimePerSide;
 
             // Play all moves of the opening line

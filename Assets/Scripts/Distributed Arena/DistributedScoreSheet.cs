@@ -151,6 +151,7 @@ public class DistributedScoreSheet
             + "[White \""  + white + "\"]\n"
             + "[Black \""  + black + "\"]\n"
             + "[Result \"" + resultStr + "\"]\n"
+            + "[SetUp \"1\"]\n"
             + "[FEN \""    + r.StartFen + "\"]\n\n";
 
         File.WriteAllText(Path.Combine(_gamesDir, "game" + r.GameNumber + ".pgn"),

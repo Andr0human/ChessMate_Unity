@@ -55,6 +55,15 @@ public class MatchData
         return (moves.Count > 0) ? (moves[moves.Count - 1]) : (0);
     }
 
+    // Seed the 50-move clock for a game that starts from a FEN whose halfmove
+    // counter is non-zero. Without this the adjudicator restarts the count at 0
+    // while the engine (sent the full FEN) sees the real clock, so the two
+    // disagree on how close the 50-move draw is. Unit is plies — the same unit
+    // the FEN's halfmove field and FiftyMoveRuleDraw() use.
+    public void
+    SeedHalfmoveClock(int plies)
+    { halfmoveClock = plies; }
+
     public bool
     FiftyMoveRuleDraw()
     { return halfmoveClock > 100; }
