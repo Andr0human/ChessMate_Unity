@@ -82,16 +82,25 @@ public class MatchData
         return count >= 3;
     }
 
+    // Counts full moves where the two engines disagreed on *who* is winning:
+    // their (white-relative) evals straddle zero AND differ by at least `margin`
+    // pawns. A same-sign gap like +15 vs +12 is just two engines scaling a won
+    // position differently and is ignored; an opposite-sign gap like +2 vs -1 is
+    // a genuine "who's better?" disagreement worth a look. This also shrugs off a
+    // constant per-engine eval offset, which a raw magnitude diff would not.
+    // Mate-score plies (stored as ±100) are excluded by the 12-pawn cap.
     public int
-    DifferentEvalCount(float margin)
+    DivergentEvalCount(float margin)
     {
         int count = 0;
         for (int i = 1; i < evals.Count; i += 2)
         {
-            float evalDiff = System.Math.Abs(evals[i] - evals[i - 1]);
-            float maxEval = System.Math.Max(System.Math.Abs(evals[i]), System.Math.Abs(evals[i - 1]));
+            float a = evals[i - 1];
+            float b = evals[i];
+            float maxEval = System.Math.Max(System.Math.Abs(a), System.Math.Abs(b));
 
-            if ((evalDiff >= margin) && (maxEval <= 12f)) count++;
+            if (a * b < 0f && System.Math.Abs(a - b) >= margin && maxEval <= 12f)
+                count++;
         }
         return count;
     }

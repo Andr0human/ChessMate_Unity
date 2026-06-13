@@ -72,7 +72,10 @@ public class ArenaScoreSheet
         if (prediction != 0)
         {
             predictionAttempt++;
-            if (prediction == result)
+            // PredictionCall encodes a dead-drawn read as 2; map it to the
+            // draw result (0) so a correctly drawn game counts as a hit.
+            int predictedResult = (prediction == 2) ? 0 : prediction;
+            if (predictedResult == result)
                 predictionSuccess++;
         }
 

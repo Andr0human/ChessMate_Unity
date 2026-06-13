@@ -109,9 +109,10 @@ public class ArenaWorker
             GameEndState state = _hmm.PlayGame(white, black, pair.OpeningLine,
                                                _searchLogDir, gameNumber);
 
-            int result   = ResultFromState(state);
-            int evalDiff = _hmm.Data.DifferentEvalCount(3f);
-            int weight   = _hmm.BoardPosition.PositionWeight();
+            int result     = ResultFromState(state);
+            int divergence = _hmm.Data.DivergentEvalCount(3f);
+            int weight     = _hmm.BoardPosition.PositionWeight();
+            int imbalance  = _hmm.BoardPosition.MaterialImbalance();
             string resultToken = result == 1 ? "1-0" : (result == -1 ? "0-1" : "1/2-1/2");
 
             _results.Enqueue(new GameResult
@@ -127,7 +128,7 @@ public class ArenaWorker
                 StartFen         = _hmm.Data.StartFen(),
                 MoveListBody     = _hmm.Data.GetPgnMoveText(resultToken),
                 Remark           = ArenaRemark.Build(result, _hmm.EndPrediction, state,
-                                                     evalDiff, weight),
+                                                     divergence, weight, imbalance),
             });
 
             Status.GamesCompleted++;

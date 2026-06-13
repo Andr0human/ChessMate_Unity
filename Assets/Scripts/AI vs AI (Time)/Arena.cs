@@ -81,31 +81,12 @@ public class Arena : MonoBehaviour
     private string
     GameRemark(int result, GameEndState state, int prediction)
     {
-        string remark = "";
-
-        // Prediction made and failed
-        if ((prediction != 0) && (result != prediction))
-            remark += "win-loss prediction-failed | ";
-
-        // If huge evaluation difference in more than 5 places in a game
-        if (mm.Data.DifferentEvalCount(3f) > 5)
-            remark += "eval-diff | ";
-        
-        // Game ended with huge material on board
-        int weightCutoff = 4000;
-        if (mm.BoardPosition.PositionWeight() > weightCutoff)
-            remark += "huge material | ";
-
-        if (state == GameEndState.DrawByRepetition)
-            remark += "draw by 3-move repetition | ";
-
-        if ((state == GameEndState.WhiteWinsOnTime) || (state == GameEndState.BlackWinsOnTime))
-            remark += "lost on time | ";
-
-        if (remark.Length > 0)
-            remark = remark.Substring(0, remark.Length - 3);
-
-        return remark;
+        // Rules live in ArenaRemark.Build (shared with the Distributed Arena);
+        // this just feeds it the values off the live MatchData / board.
+        return ArenaRemark.Build(result, prediction, state,
+                                 mm.Data.DivergentEvalCount(3f),
+                                 mm.BoardPosition.PositionWeight(),
+                                 mm.BoardPosition.MaterialImbalance());
     }
 
 

@@ -263,6 +263,22 @@ public class ChessBoard
         return weight;
     }
 
+    // Absolute material difference between the two sides (same piece values
+    // as PositionWeight). Used by the Arena anomaly check to tell a routine
+    // equal-material repetition from one where a side had a real edge and
+    // still let the game slip to a draw.
+    public int
+    MaterialImbalance()
+    {
+        int white = 100 * PopCount(pieces[1]) + 320 * PopCount(pieces[2])
+                  + 300 * PopCount(pieces[3]) + 500 * PopCount(pieces[4])
+                  + 900 * PopCount(pieces[5]);
+        int black = 100 * PopCount(pieces[ 9]) + 320 * PopCount(pieces[10])
+                  + 300 * PopCount(pieces[11]) + 500 * PopCount(pieces[12])
+                  + 900 * PopCount(pieces[13]);
+        return System.Math.Abs(white - black);
+    }
+
     #endregion
 
 

@@ -107,11 +107,15 @@ public class DistributedScoreSheet
             else                    _b0_losses++;
         }
 
-        // Prediction accuracy (white-relative, same convention as Result)
+        // Prediction accuracy (white-relative, same convention as Result).
+        // PredictionCall encodes a dead-drawn read as 2; map it to the draw
+        // result (0) so a correctly drawn game counts as a hit (mirrors
+        // ArenaScoreSheet.Add).
         if (r.Prediction != 0)
         {
             _predictionAttempt++;
-            if (r.Prediction == r.Result) _predictionSuccess++;
+            int predictedResult = (r.Prediction == 2) ? 0 : r.Prediction;
+            if (predictedResult == r.Result) _predictionSuccess++;
         }
 
         // Flag losses, attributed to the engine whose clock expired
